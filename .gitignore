@@ -42,3 +42,8 @@ vignettes/*.pdf
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
+
+# Output files from LaTeX
+*.aux
+*.log
+*.synctex.gz

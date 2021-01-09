@@ -86,7 +86,7 @@ for(subject in subjects) {
 			                           trim_INLA = T)
     total_time <- proc.time()[3] - start_time
     result_svh$total_time <- total_time
-    saveRDS(result_svh, file=file.path(result_dir,paste0(subject,"_visit",visit,"_",hem,"_1k_",format(Sys.Date(),"%Y%m%d"),".rds")))
+    saveRDS(result_svh, file=file.path(result_dir,paste0("500_",subject,"_visit",visit,"_",hem,"_1k_",format(Sys.Date(),"%Y%m%d"),".rds")))
     }
   }
 }
