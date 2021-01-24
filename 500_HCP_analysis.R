@@ -7,7 +7,7 @@ inla.setOption(pardiso.license = "~/licenses/pardiso.lic") # Dan's Macbook Pro
 library(BayesfMRI)
 main_dir <- "~/github/BayesGLM_Validation" # Dan's Macbook Pro
 data_dir <- "~/github/BayesGLM_Validation/HCP_data" # Dan's Macbook Pro
-result_dir <- "~/github/BayesGLM_Validation/HCP_results" # Dan's Macbook Pro
+result_dir <- "~/github/BayesGLM_Validation/HCP_results/1k_results/PW" # Dan's Macbook Pro
 load(file.path(data_dir,"subjects.Rdata"))
 tasks <- c('cue','lf','lh','rf','rh','t') # Task data frame columns
 names_tasks <- c('cue','left foot','left hand','right foot','right hand','tongue')
@@ -76,6 +76,8 @@ for(subject in subjects) {
 			                           scale_BOLD = TRUE,
 			                           scale_design = TRUE,
                                  GLM_method = 'both',
+			                           prewhiten = TRUE,
+			                           ar_order = 6,
                                  session_names = c('LR','RL'), # Multiple sessions
                                  resamp_res = 1000, # Don't forget to change this
                                  num.threads = 4, # Remember the tradeoff here (speed/memory) 4 to 6 threads seems optimal based on testing
