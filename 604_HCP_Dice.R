@@ -5,32 +5,41 @@
 result_dir <- "HCP_results/5k_results/individual"
 result_files <- list.files(result_dir, full.names = TRUE)
 load("HCP_data/subjects.Rdata") # The subjects object (character vector)
+result_files <- grep(".rds", result_files, value = T)
 hems <- c('left','right')
-visits <- 1:2
-thresholds <- c(0,0.005)
+threshold <- 0
 subject_dice <- vector('numeric', length = length(subjects))
 library(BayesfMRI)
 library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
+library(excursions)
 
 # Calculate subject Dice coefficients ----
+subjects_dice <- list()
 for(subj in subjects) {
-  for(v in visits) {
+  visit_exc <- list()
+  for(v in 1:2) {
+    hems_exc <- list()
     for(h in hems) {
       L_or_R <- toupper(substring(h,1,1))
       filen <- grep(paste0(subj,"_visit",v,"_",h), result_files, value = T)
-      config <- excursions:::private.get.config(model_obj$INLA_result,1)
       result_subj <- readRDS(filen)
-      for(thr in thresholds) {
-        excursions:::inla.output.indices()
-        pred_inds <- model_obj$INLA_result$misc$configs$config[[1]]$pred_idx
-        test <- excursions(alpha = 0.01, u = 0, mu =
-                             model_obj$INLA_result$misc$configs$config[[1]]$mean,
-                           Q = model_obj$INLA_result$misc$configs$config[[1]]$Q,
-                           type = ">", ind = pred_inds)
-        result_active <- id_activations(result_subj$GLMs_Bayesian[[paste0('cortex',L_or_R)]],
-                                        threshold = thr, alpha = 0.01, type = NULL)
-      }
+      model_obj <- result_subj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]
+      nvox <- model_obj$mesh$n
+      K <- length(model_obj$beta_names)
+      config <- excursions:::private.get.config(model_obj$INLA_result,1)
+      pred_inds <- model_obj$INLA_result$misc$configs$config[[1]]$pred_idx
+      # Remember that u is the threshold here
+      avg_excursions <- excursions(alpha = 0.01, u = threshold, mu =
+                           model_obj$INLA_result$misc$configs$config[[1]]$mean[pred_inds],
+                         Q = model_obj$INLA_result$misc$configs$config[[1]]$Q[pred_inds,pred_inds],
+                         type = ">")
+      hems_exc[[h]] <- matrix(avg_excursions$E,nvox,K)
     }
+    visit_exc[[v]] <- Reduce(rbind,hems_exc)
   }
+  subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2) / mean(c(sum(v1),sum(v2))) },
+         v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
+         v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
 }
+

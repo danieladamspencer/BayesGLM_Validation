@@ -1,5 +1,6 @@
 # This is a script meant to plot the activation areas at different thresholds
 # for the HCP analysis results
+# GROUP LEVEL ----
 # Load libraries and grab result file names ----
 library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
@@ -62,3 +63,10 @@ for(task in task_names) {
        surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
        save = TRUE, fname = paste0("plots/603_",sub(" ","_", task),"_activation_map"))
 }
+
+# SUBJECT LEVEL ----
+# Load libraries and grab result file names ----
+library(ciftiTools)
+ciftiTools.setOption('wb_path','/Applications/workbench')
+result_dir <- "HCP_results/5k_results/group"
+result_files <- list.files(result_dir, full.names = T)

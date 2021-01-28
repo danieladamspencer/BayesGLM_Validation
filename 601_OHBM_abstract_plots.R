@@ -19,10 +19,10 @@ single_subject_result <- readRDS(file = file.path(results_dir,result_files))
 num_betas <- ncol(single_subject_result$betas_Bayesian$LR$data$cortex_left)
 task_names <- c("Visual Cue","Right Foot","Right Hand","Tongue")
 file_task_names <- tolower(gsub(" ","_",task_names))
-zlims <- list(c(-1.5,1.5),
+zlims <- list(c(-1,1),
               c(-1,1),
-              c(-2,2),
-              c(-2.5,2.5))
+              c(-1,1),
+              c(-1,1))
 
 # >> Plot Estimates ----
 
