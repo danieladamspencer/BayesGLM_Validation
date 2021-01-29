@@ -23,12 +23,12 @@ cols_RH <- c(1:3,6) #cue, left foot, left hand, tongue
 cols_list <- list(cols_LH, cols_RH)
 TR = 0.72 #temporal resolution of data
 thetas <- NULL # No starting values for precision parameters
-subjects <- subjects[1:2]
+subjects <- subjects[1]
 for(subject in subjects) {
   dir_s <- file.path(data_dir, subject, 'MNINonLinear', 'fsaverage_LR32k')
   fname_gifti_left <- file.path(dir_s, paste0(subject,'.L.midthickness.32k_fs_LR.surf.gii'))
   fname_gifti_right <- file.path(dir_s, paste0(subject,'.R.midthickness.32k_fs_LR.surf.gii'))
-  for(visit in 1:2) {
+  for(visit in c(1)) {
     if(visit == 1) {
       dir1_s <- file.path(data_dir,subject, 'MNINonLinear', 'Results', 'tfMRI_MOTOR_LR')
       dir2_s <- file.path(data_dir,subject, 'MNINonLinear', 'Results', 'tfMRI_MOTOR_RL')
@@ -44,7 +44,7 @@ for(subject in subjects) {
       fname2_ts <- file.path(dir2_s,'tfMRI_MOTOR_RL_Atlas.dtseries.nii')
     }
     #analyze hemispheres separately due to different in set of tasks
-    for(h in 1:2){
+    for(h in c(1)){
 
       #h=1 -- left hemisphere
       #h=2 -- right hemisphere
@@ -71,29 +71,31 @@ for(subject in subjects) {
       motion2 <- as.matrix(read.table(file.path(dir2_s,'Movement_Regressors.txt'), header=FALSE))
 
     start_time <- proc.time()[3]
-    result_svh <- BayesGLM_cifti(cifti_fname = c(fname1_ts, fname2_ts), # Multi-session
+    result_svh <- BayesGLM_cifti(#cifti_fname = c(fname1_ts, fname2_ts), # Multi-session
+                                 cifti_fname = fname1_ts, # single-session
                                  surfL_fname = fname_gifti_left,
                                  surfR_fname = fname_gifti_right,
                                  brainstructures = hem,
-                                 # wb_path = wb_cmd,
 			                           design = NULL,
-                                 onsets = list(onsets1, onsets2), # Multi-session
+                                 # onsets = list(onsets1, onsets2), # Multi-session
+                                 onsets = onsets1, # single-session
                                  TR = TR,
-                                 nuisance = list(motion1, motion2), # Multi-session
+                                 # nuisance = list(motion1, motion2), # Multi-session
+			                           nuisance = motion1, # single-session
                                  nuisance_include = c('drift','dHRF'),
 			                           scale_BOLD = TRUE,
 			                           scale_design = TRUE,
                                  GLM_method = 'both',
-			                           prewhiten = TRUE,
 			                           ar_order = 6,
-			                           surface_sigma = 6 / (2*sqrt(2*log(2))),
-                                 session_names = c('LR','RL'), # Multiple sessions
+			                           ar_smooth = 5,
+                                 # session_names = c('LR','RL'), # Multiple sessions
+			                           session_names = c('LR'), # single session
                                  resamp_res = 1000, # Don't forget to change this
                                  num.threads = 4, # Remember the tradeoff here (speed/memory) 4 to 6 threads seems optimal based on testing
                                  verbose = TRUE,
                                  outfile = NULL,
                                  return_INLA_result = T,
-                                 avg_betas_over_sessions = T,
+                                 avg_sessions = T,
 			                           trim_INLA = T)
     total_time <- proc.time()[3] - start_time
     result_svh$total_time <- total_time

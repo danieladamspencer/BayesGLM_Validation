@@ -42,4 +42,5 @@ for(subj in subjects) {
          v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
          v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
 }
-
+all_dice <- Reduce(rbind, subjects_dice)
+saveRDS(all_dice, paste0("HCP_results/5k_results/604_Dice_coefficient_threshold",threshold,".rds"))
