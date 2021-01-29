@@ -1,12 +1,24 @@
 # This is a script for running the group analysis on the HCP results
 library(BayesfMRI)
-result_dir <- "~/github/BayesGLM_Validation/HCP_results/5k_results/group"
-# results <- list.files("/Volumes/Macintosh HD/Users/Shared/HCP/5k_results/", full.names = T)
-results_all <- list.files("~/github/BayesGLM_Validation/HCP_results/5k_results/individual/", full.names = T)
+# result_dir <- "~/github/BayesGLM_Validation/HCP_results/5k_results/group"
+result_dir <- "/Users/Shared/HCP/5k_results/group"
+results_all <- list.files("/Volumes/Macintosh HD/Users/Shared/HCP/5k_results/PW", full.names = T)
+# results_all <- list.files("~/github/BayesGLM_Validation/HCP_results/5k_results/individual/PW", full.names = T)
+load("/Users/Shared/HCP/subjects.Rdata")
+subjects <- subjects[seq(20)]
+results_sub <- sapply(subjects, grep, x = results_all, value = T, simplify = F)
+results_sub <- Reduce(c,results_sub)
+# Check that all results are available for each subject
+per_subj <- vector('numeric',length = length(subjects))
+for(s in 1:length(per_subj)) {
+  per_subj[s] <- length(grep(subjects[s],results_sub))
+}
+if(any(per_subj != 4)) stop("Not all subjects have the same number of result files.")
+
 library(INLA)
 inla.setOption(pardiso.license = "~/licenses/pardiso.lic")
 hem <- c("left","right")
-gamma_0 <- c(0.5,1)
+gamma_0 <- c(0,0.5,1)
 
 for(h in hem) {
   results <- grep(h, results_all, value = T)
@@ -14,7 +26,7 @@ for(h in hem) {
     start_time <- proc.time()[3]
     group_analysis <- BayesGLM2(results, excursion_type = '>', gamma = 0.5, no_cores = 4)
     group_analysis$total_time <- proc.time()[3] - start_time
-    saveRDS(group_analysis,paste0(result_dir,'/HCP_BayesGLM2_result_',h,'_thresh',sub('\\.','',as.character(g)),'_',format(Sys.Date(),"%Y%m%d"),'.rds'))
+    saveRDS(group_analysis,paste0(result_dir,'/HCP_BayesGLM2_20subj_result_',h,'_thresh',sub('\\.','',as.character(g)),'_',format(Sys.Date(),"%Y%m%d"),'.rds'))
   }
 }
 
