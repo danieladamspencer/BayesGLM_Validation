@@ -28,7 +28,8 @@ thresh_chr <- sub("\\.","",as.character(threshs))
 task_names <- c('visual cue','foot','hand','tongue')
 activation_maps <- vector('list',length(task_names))
 names(activation_maps) <- task_names
-for(task in 1:4) {
+# Changing this to plot both hemispheres of the tongue task ONLY
+for(task in c(4)) {
   # Load a template for the task
   activation_maps[[task]] <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
   for(h in hem) {
@@ -57,8 +58,8 @@ for(task in 1:4) {
   }
 }
 
-for(task in task_names) {
-  plot(activation_maps[[task]], color_mode = 'qualitative', hemisphere = 'left', colors = c("yellow","orange"),
+for(task in task_names[4]) {
+  plot(activation_maps[[task]], color_mode = 'qualitative', hemisphere = 'both', colors = c("yellow","orange"),
        surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
        surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
        save = TRUE, fname = paste0("plots/603_",sub(" ","_", task),"_activation_map"))

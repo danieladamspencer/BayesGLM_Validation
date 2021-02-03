@@ -3,8 +3,9 @@
 # subject variance and the individual sessions to calculate the within-subject
 # variation.
 
-result_dir <- "~/github/BayesGLM_Validation/HCP_results/5k_results/individual"
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW"
 result_files <- list.files(result_dir,full.names = TRUE)
+result_files <- grep(".rds", result_files, value = T)
 # Grab estimates ----
 # >>  Bayesian ----
 # Individual sessions
@@ -41,7 +42,7 @@ avg_estimates <- sapply(c('left','right'), function(hem) {
   }, simplify = F)
   return(out_list_l1)
 }, simplify = F)
-# saveRDS(avg_estimates, file.path(result_dir,"602_avg_estimates.rds"))
+saveRDS(avg_estimates, file.path(result_dir,"602_avg_PW_estimates.rds"))
 
 # >>  Classical ----
 # Individual sessions
@@ -78,7 +79,7 @@ avg_estimates_classical <- sapply(c('left','right'), function(hem) {
   }, simplify = F)
   return(out_list_l1)
 }, simplify = F)
-# saveRDS(avg_estimates_classical, file.path(result_dir,"602_avg_estimates_classical.rds"))
+saveRDS(avg_estimates_classical, file.path(result_dir,"602_avg_estimates_PW_classical.rds"))
 
 # ICC function definition ----
 #' Intraclass Correlation

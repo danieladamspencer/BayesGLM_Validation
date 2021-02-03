@@ -1,7 +1,7 @@
 # This is a script to perform the t-tests necessary to get the p-values in
 # order to determine areas of activation for the classical estimates
 classical_estimates <-
-  readRDS("HCP_results/5k_results/individual/602_avg_estimates_classical.rds")
+  readRDS("HCP_results/5k_results/602_avg_estimates_PW_classical.rds")
 
 # Calculate the average estimates ----
 library(abind)
@@ -10,11 +10,11 @@ average_estimates <- sapply(classical_estimates, function(hem_est) {
   avg_est <- apply(combined_estimates,1:2,mean)
   return(avg_est)
 }, simplify = F)
-saveRDS(average_estimates, "HCP_results/5k_results/group/502_HCP_classical_group_estimates.rds")
+saveRDS(average_estimates, "HCP_results/5k_results/502_HCP_classical_group_PW_estimates.rds")
 
 # FWER ----
 bonferroni_cutoff <- 0.01 / (4443+4444) # alpha = 0.01
-threshs <- c(0,0.5,1)
+threshs <- c(0)
 combined_active_FWER <- sapply(classical_estimates, function(hem_res) {
   data_df <- reshape2::melt(hem_res)
   vertex_lists <- split(data_df,data_df$Var1)
@@ -33,7 +33,7 @@ combined_active_FWER <- sapply(classical_estimates, function(hem_res) {
   names(thresh_active) <- paste0(threshs,"%")
   return(thresh_active)
 }, simplify = FALSE)
-saveRDS(combined_active_FWER, "HCP_results/5k_results/group/502_HCP_classical_activations_FWER.rds")
+saveRDS(combined_active_FWER, "HCP_results/5k_results/502_HCP_classical_activations_PW_FWER.rds")
 
 # FDR ----
 BH_FDR <- function(p, FDR = 0.05) {
@@ -44,7 +44,7 @@ BH_FDR <- function(p, FDR = 0.05) {
   return(out)
 }
 
-threshs <- c(0,0.5,1)
+threshs <- c(0)
 combined_active_FDR <- sapply(classical_estimates, function(hem_res) {
   data_df <- reshape2::melt(hem_res)
   vertex_lists <- split(data_df,data_df$Var1)
@@ -63,4 +63,4 @@ combined_active_FDR <- sapply(classical_estimates, function(hem_res) {
   names(thresh_active) <- paste0(threshs,"%")
   return(thresh_active)
 }, simplify = FALSE)
-saveRDS(combined_active_FDR, "HCP_results/5k_results/group/502_HCP_classical_activations_FDR.rds")
+saveRDS(combined_active_FDR, "HCP_results/5k_results/502_HCP_classical_activations_PW_FDR.rds")
