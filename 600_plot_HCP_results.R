@@ -40,3 +40,50 @@ cifti_AR$data$cortex_left <- result$prewhitening_info$left$AR_coeffs
 for(p in 1:6) plot(cifti_AR, idx = p, title = paste("AR order",p), zlim = c(-.2,.2))
 cifti_AR$data$cortex_left <- as.matrix(result$prewhitening_info$left$AR_var)
 plot(cifti_AR,title = "AR Residual Variance")
+
+# Estimates for multiple individual subjects ----
+library(ciftiTools)
+ciftiTools.setOption('wb_path','/Applications/workbench/')
+library(INLA)
+inla.setOption(pardiso.lic = "~/pardiso.lic")
+library(BayesfMRI)
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW"
+load("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/subjects.Rdata")
+subjects <- subjects[seq(5)]
+result_files <- list.files(result_dir, full.names = T)
+result_files <- c(sapply(subjects,grep, x = result_files, value = T))
+vis <- "visit1"
+task_idx <- 4
+task_name <- "Tongue"
+result_files <- grep(vis, result_files, value = T)
+# >> Bayesian ----
+for(s in subjects) {
+  cifti_template <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
+  left_result <- readRDS(grep('left',grep(s,result_files, value = T), value = T))
+  cifti_template$data$cortex_left <- left_result$betas_Bayesian$avg$data$cortex_left
+  rm(left_result)
+  right_result <- readRDS(grep('right',grep(s,result_files, value = T), value = T))
+  cifti_template$data$cortex_right <- right_result$betas_Bayesian$avg$data$cortex_right
+  rm(right_result)
+  plot(cifti_template, idx = task_idx, title = paste("Subject",s,task_name,"Task"),
+       surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+       surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+       save = paste0("plots/600_subject_",s,"_",tolower(task_name),"_estimates.png"),
+       zlim = c(-1,1))
+}
+# >> Classical ----
+for(s in subjects) {
+  cifti_template <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
+  left_result <- readRDS(grep('left',grep(s,result_files, value = T), value = T))
+  cifti_template$data$cortex_left <- left_result$betas_classical$avg$data$cortex_left
+  rm(left_result)
+  right_result <- readRDS(grep('right',grep(s,result_files, value = T), value = T))
+  cifti_template$data$cortex_right <- right_result$betas_classical$avg$data$cortex_right
+  rm(right_result)
+  plot(cifti_template, idx = task_idx, title = paste("Subject",s,task_name,"Task"),
+       surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+       surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+       fname = paste0("plots/600_subject_",s,"_",tolower(task_name),"_classical_estimates.png"),
+       zlim = c(-1,1))
+}
+# Activations for multiple individual subjects ----
