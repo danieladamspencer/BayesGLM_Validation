@@ -153,3 +153,97 @@ for(subject in subjects) {
        fname = paste0('plots/603_subject_',subject,"_tongue_task_activations_classical.png"))
 }
 
+# >> Add Bayesian and Classical activations to examine consistency ----
+# >>>> Bayesian ----
+result_dir <- "HCP_results/5k_results/individual/PW/activations"
+load("HCP_data/subjects.Rdata")
+subjects <- subjects[seq(4)]
+task_idx <- 4 # This is for the tongue
+thr <- 0.5
+thr_chr <- paste0("_thr",sub("\\.","",thr))
+alpha <- 0.01
+alpha_chr <- paste0("_alpha",sub("\\.","",alpha))
+library(viridisLite)
+col_pal <- rev(plasma(5)[3:4])
+subject_files <- grep("503_", list.files(result_dir, full.names = T), value = T)
+subject_files <- unlist(sapply(subjects, grep, x = subject_files, value = T))
+subject_files <- grep(thr_chr, subject_files,  value=T)
+subject_files <- grep("_classical.rds",subject_files, value = T, invert = T)
+for(subject in subjects) {
+  for(h in c('left','right')){
+    for(v in 1:2) {
+      subject_file <- grep(paste0("_visit",v,"_subject_",subject,"_",h), subject_files, value = T)
+      subject_act <- readRDS(subject_file)
+      L_or_R <- toupper(substring(h,1,1))
+      if(v == 1){
+        if(h == 'left') {
+          subject_cifti <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
+        }
+        subject_cifti$data[[paste0("cortex_",h)]] <- as.matrix(subject_act$active[,task_idx])
+      }
+      if(v == 2) {
+        subject_cifti$data[[paste0("cortex_",h)]] <- as.matrix(subject_act$active[,task_idx]) +
+          subject_cifti$data[[paste0("cortex_",h)]]
+      }
+    }
+    subject_cifti$data[[paste0("cortex_",h)]] <-
+      as.matrix(
+        ifelse(subject_cifti$data[[paste0("cortex_", h)]] == 0,
+               NA,
+               subject_cifti$data[[paste0("cortex_", h)]]
+               )
+        )
+  }
+  plot(subject_cifti, fname = paste0("plots/603_subject_",subject,thr_chr,alpha_chr,"_num_active.png"),
+       title = paste("Subject",subject, "Tongue Task\nVisit Activations"),
+       color_mode = "qualitative",colors = col_pal,
+       surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+       surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii")
+}
+
+# >>>> Classical ----
+result_dir <- "HCP_results/5k_results/individual/PW/activations"
+load("HCP_data/subjects.Rdata")
+subjects <- subjects[seq(4)]
+task_idx <- 4 # This is for the tongue
+thr <- 0.5
+thr_chr <- paste0("_thr",sub("\\.","",thr))
+alpha <- 0.01
+alpha_chr <- paste0("_alpha",sub("\\.","",alpha))
+library(viridisLite)
+col_pal <- rev(plasma(5)[3:4])
+subject_files <- grep("503_", list.files(result_dir, full.names = T), value = T)
+subject_files <- unlist(sapply(subjects, grep, x = subject_files, value = T))
+subject_files <- grep(thr_chr, subject_files,  value=T)
+subject_files <- grep("_classical.rds",subject_files, value = T, invert = F)
+for(subject in subjects) {
+  for(h in c('left','right')){
+    for(v in 1:2) {
+      subject_file <- grep(paste0("_visit",v,"_subject_",subject,"_",h), subject_files, value = T)
+      subject_act <- readRDS(subject_file)
+      L_or_R <- toupper(substring(h,1,1))
+      if(v == 1){
+        if(h == 'left') {
+          subject_cifti <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
+        }
+        subject_cifti$data[[paste0("cortex_",h)]] <- as.matrix(subject_act$active[,task_idx])
+      }
+      if(v == 2) {
+        subject_cifti$data[[paste0("cortex_",h)]] <- as.matrix(subject_act$active[,task_idx]) +
+          subject_cifti$data[[paste0("cortex_",h)]]
+      }
+    }
+    subject_cifti$data[[paste0("cortex_",h)]] <-
+      as.matrix(
+        ifelse(subject_cifti$data[[paste0("cortex_", h)]] == 0,
+               NA,
+               subject_cifti$data[[paste0("cortex_", h)]]
+        )
+      )
+  }
+  plot(subject_cifti, fname = paste0("plots/603_subject_",subject,thr_chr,alpha_chr,"_num_active.png"),
+       title = paste("Subject",subject, "Tongue Task\nVisit Activations"),
+       color_mode = "qualitative",colors = col_pal,
+       surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+       surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii")
+}
