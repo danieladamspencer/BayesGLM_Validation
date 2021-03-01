@@ -95,12 +95,31 @@ saveRDS(avg_estimates_classical, "HCP_results/5k_results/602_average_estimates_c
 #'
 #' @examples
 ICC <- function(X) {
-  xbar <- mean(X)
-  s2 <- sum((X - xbar)^2) / (prod(dim(X)))
-  xbar_i <- apply(X,1,mean)
-  r <- (ncol(X)*sum((xbar_i - xbar)^2) / (nrow(X)*s2) - 1) / (ncol(X) - 1)
-  if(r < 0) r <- 0
+  # xbar <- mean(X)
+  # s2 <- sum((X - xbar)^2) / (prod(dim(X)))
+  # xbar_i <- apply(X,1,mean)
+  sig2_t <- mean(apply(X,2,var))
+  sig2_w <- var(Reduce(`-`,split(X,col(X)))) / 2
+  sig2_b <- sig2_t - sig2_w
+  sig2_b[sig2_b < 0] <- 0
+  r <- sig2_b / sig2_t
+  # r <- (ncol(X)*sum((xbar_i - xbar)^2) / (nrow(X)*s2) - 1) / (ncol(X) - 1)
+  # if(r < 0) r <- 0
   return(r)
+}
+
+I2C2 <- function(img_X,img_wt) {
+  vars_bt <- sapply(asplit(img_X,1),function(X){
+    sig2_t <- mean(apply(X,2,var))
+    sig2_w <- var(Reduce(`-`,asplit(X,2))) / 2
+    sig2_b <- sig2_t - sig2_w
+    sig2_b[sig2_b < 0] <- 0
+    return(c(sig2_b,sig2_t))
+  })
+  weighted_vars <- t(vars_bt) * cbind(img_wt, img_wt)
+  sum_weighted_vars <- apply(weighted_vars,2,sum)
+  out <- sum_weighted_vars[1] / sum_weighted_vars[2]
+  return(out)
 }
 
 # ICC Calculation ----
@@ -235,17 +254,30 @@ plot(cifti_weights, idx = 4, fname = "plots/602_icc_weights_tongue.png",
 # bayes_wICC_separate <- round(apply(mapply(function(wt,icc) {
 #   return(apply(wt*icc,2,sum))
 # }, wt = ICC_weights, icc = ICC_values_separate),1,sum),3)
-bayes_wICC_avg <- round(mapply(function(wt,icc) {
-  return(apply(wt*icc,2,sum))
-}, wt = ICC_weights, icc = ICC_values_average),3)
+# bayes_wICC_avg <- round(mapply(function(wt,icc) {
+#   return(apply(wt*icc,2,sum))
+# }, wt = ICC_weights, icc = ICC_values_average),3)
+library(abind)
+abind_g <- function(...) abind(...,along = 4)
+bayes_wICC <- round(mapply(function(hem_est, wts) {
+  combined_visits <- Reduce(abind_g,hem_est)
+  vertex_wICC <- mapply(I2C2, img_X = asplit(combined_visits,2),img_wt = asplit(wts,2))
+  # vertex_ICC <- apply(combined_visits, 2, I2C2, img_wt = wts)
+  return(vertex_wICC)
+}, hem_est = avg_estimates,wts = ICC_weights,SIMPLIFY = T),3)
 # >> Classical ----
 # classical_wICC_separate <- round(apply(mapply(function(wt,icc) {
 #   return(apply(wt*icc,2,sum))
 # }, wt = ICC_weights, icc = ICC_values_separate_classical),1,sum),3)
-classical_wICC_avg <- round(mapply(function(wt,icc) {
-  return(apply(wt*icc,2,sum))
-}, wt = ICC_weights, icc = ICC_values_average_classical),3)
-
+# classical_wICC_avg <- round(mapply(function(wt,icc) {
+#   return(apply(wt*icc,2,sum))
+# }, wt = ICC_weights, icc = ICC_values_average_classical),3)
+classical_wICC <- round(mapply(function(hem_est, wts) {
+  combined_visits <- Reduce(abind_g,hem_est)
+  vertex_wICC <- mapply(I2C2, img_X = asplit(combined_visits,2),img_wt = asplit(wts,2))
+  # vertex_ICC <- apply(combined_visits, 2, I2C2, img_wt = wts)
+  return(vertex_wICC)
+}, hem_est = avg_estimates_classical,wts = ICC_weights,SIMPLIFY = T),3)
 # Plotting ----
 library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
@@ -272,25 +304,26 @@ plot_dir <- "~/github/BayesGLM_Validation/HCP_results/plots"
 
 # >>>> Average Estimates ----
 task_file_names <- c("visual_cue","foot","hand","tongue")
-bayesian_icc_avg_cifti <- readRDS(result_files[1])$betas_classical[[1]]
+bayesian_icc_avg_cifti <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
 bayesian_icc_avg_cifti$data$cortex_left <- ICC_values_average$left
 bayesian_icc_avg_cifti$data$cortex_right <- ICC_values_average$right
-bayesian_icc_avg_cifti$meta$cortex$medial_wall_mask$right <-
-  readRDS(result_files[2])$betas_classical[[1]]$meta$cortex$medial_wall_mask$right
-for(i in 1:4) {
+library(viridisLite)
+my_pal <- viridis(4)
+task_idx <- 4
+# for(i in 1:4) {
   plot(
     bayesian_icc_avg_cifti,
-    idx = i,
+    idx = task_idx,
     hemisphere = 'both',
-    title = paste("wICC (left, right) =", paste(bayes_wICC_avg[i,], collapse = ",")),
+    title = paste("wICC (left, right) =", paste(bayes_wICC[task_idx,], collapse = ",")),
     color_mode = 'sequential',
-    colors = c('black','red','yellow','white'),
-    zlim = c(0,0.3,0.6,0.9),
+    colors = my_pal,
+    zlim = c(0,0.6/3,2*0.6/3,0.6),
     surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
     surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
-    fname = paste0("plots/602_",task_file_names[i],"_icc_bayesian_avg_left")
+    fname = paste0("plots/602_",task_file_names[task_idx],"_icc_bayesian.png")
   )
-}
+# }
 
 
 # >> Classical ----
@@ -314,23 +347,23 @@ for(i in 1:4) {
 # )
 
 # >>>> Average Estimates ----
-classical_icc_avg_cifti <- readRDS(result_files[1])$betas_classical[[1]]
+classical_icc_avg_cifti <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
 classical_icc_avg_cifti$data$cortex_left <- ICC_values_average_classical$left
 classical_icc_avg_cifti$data$cortex_right <- ICC_values_average_classical$right
-classical_icc_avg_cifti$meta$cortex$medial_wall_mask$right <-
-  readRDS(result_files[2])$betas_classical[[1]]$meta$cortex$medial_wall_mask$right
-for(i in 1:4) {
+library(viridisLite)
+my_pal <- viridis(4)
+task_idx <- 4
+# for(i in 1:4) {
   plot(
     classical_icc_avg_cifti,
-    idx = 1,
+    idx = task_idx,
     hemisphere = 'both',
-    title = paste("wICC (left, right) =", paste(classical_wICC_avg[i,]), collapse = ","),
+    title = paste("wICC (left, right) =", paste(classical_wICC[task_idx,], collapse = ",")),
     color_mode = 'sequential',
-    colors = c('black','red','yellow','white'),
-    zlim = c(0,0.3,0.6,0.9),
-    cex.title = 2,
+    colors = my_pal,
+    zlim = c(0,0.6/3,2*0.6/3,0.6),
     surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
-    surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
-    # fname = paste0("plots/602_",task_file_names[i],"_icc_classical_avg_left")
+    surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+    fname = paste0("plots/602_",task_file_names[task_idx],"_icc_classical")
   )
-}
+# }
