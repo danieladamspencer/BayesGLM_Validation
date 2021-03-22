@@ -98,31 +98,42 @@ all_dice <- Reduce(rbind, subjects_dice)
 saveRDS(all_dice, paste0("HCP_results/5k_results/604_classical_FWER_overlap_size_PW_threshold",threshold,".rds"))
 
 # # Plot the Dice Coefficients ----
-# dice_result_files <- list.files("HCP_results/5k_results", full.names = T)
-# dice_result_files <- grep("604_", dice_result_files, value = T)
-# dice_result_files <- grep("_PW_", dice_result_files, value = T)
-# dice_result_files <- grep("_Dice_", dice_result_files, value = T)
-# dice_files <- list(Bayesian = grep("classical",dice_result_files, invert = T, value = T)[c(2,1,3)],
-#                    Classical = grep("FWER",dice_result_files, value = T)[c(2,1,3)])
-# dice_results <- sapply(dice_files, function(df) sapply(df,readRDS, simplify = F), simplify = F)
-# task_names <- c("visual cue","tongue","right foot","right hand","left foot","left hand")
-# names(dice_results$Bayesian) <- c("0%","0.5%","1%")
-# names(dice_results$Classical) <- c("0%","0.5%","1%")
-# library(tidyverse)
+dice_result_files <- list.files("HCP_results/5k_results", full.names = T)
+dice_result_files <- grep("604_", dice_result_files, value = T)
+dice_result_files <- grep("_PW_", dice_result_files, value = T)
+dice_result_files <- grep("_Dice_", dice_result_files, value = T)
+dice_files <- list(Bayesian = grep("classical",dice_result_files, invert = T, value = T)[c(2,1,3)],
+                   Classical = grep("FWER",dice_result_files, value = T)[c(2,1,3)])
+dice_results <- sapply(dice_files, function(df) sapply(df,readRDS, simplify = F), simplify = F)
+task_names <- c("visual cue","tongue","right foot","right hand","left foot","left hand")
+names(dice_results$Bayesian) <- c("0%","0.5%","1%")
+names(dice_results$Classical) <- c("0%","0.5%","1%")
+library(tidyverse)
 #
 # # >> Boxplots ----
-# reshape2::melt(dice_results) %>%
-#   mutate(Var2 = task_names[Var2],
-#          Var2 = as.factor(Var2),
-#          L2 = factor(L2, levels = c("0%","0.5%","1%"))) %>%
-#   ggplot() +
-#   geom_boxplot(aes(x = value, y = L1, fill = L1)) +
-#   labs(y = "Dice Coefficients", x = "") +
-#   scale_fill_discrete("") +
-#   facet_grid(Var2~L2, scales = "free_y") +
-#   theme_bw() +
-#   theme(axis.text.y = element_blank(),axis.ticks.y = element_blank())
-#
+reshape2::melt(dice_results) %>%
+  mutate(Var2 = task_names[Var2],
+         Var2 = as.factor(Var2),
+         L2 = factor(L2, levels = c("0%","0.5%","1%"))) %>%
+  ggplot() +
+  geom_boxplot(aes(x = value, y = L1, fill = L1)) +
+  labs(y = "Dice Coefficients", x = "") +
+  scale_fill_discrete("") +
+  facet_grid(Var2~L2, scales = "free_y") +
+  theme_bw() +
+  theme(axis.text.y = element_blank(),axis.ticks.y = element_blank())
+
+reshape2::melt(dice_results) %>%
+  filter(L1 == "Bayesian") %>%
+  mutate(Var2 = task_names[Var2],
+         Var2 = as.factor(Var2),
+         L2 = factor(L2, levels = c("0%","0.5%","1%"))) %>%
+  ggplot() +
+  geom_boxplot(aes(x = L2, y = value)) +
+  labs(y = "Dice Coefficients", x = "Activation Threshold") +
+  facet_grid(Var2~., scales = "free_y") +
+  theme_bw() #+
+  theme(axis.text.y = element_blank(),axis.ticks.y = element_blank())
 
 # >>>> Paired Hypothesis Testing ----
 bstrap_test <- function(x, mu = 0, num_resamp = 5000, alternative = "greater") {

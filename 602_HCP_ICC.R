@@ -125,18 +125,30 @@ I2C2 <- function(img_X,img_wt) {
 # ICC Calculation ----
 # >> Bayesian ----
 result_dir <- "HCP_results/5k_results"
-# session_estimates <- readRDS(file.path(result_dir,"602_session_estimates.rds"))
+session_estimates <- readRDS(file.path(result_dir,"602_session_estimates.rds"))
 avg_estimates <- readRDS(file.path(result_dir,"602_avg_estimates.rds"))
 # >>>> ICC using session estimates ----
-# library(abind)
-# abind_f <- function(...) abind(..., along = 3)
-# ICC_values_separate <- sapply(session_estimates, function(hem_est) {
-#   combined_visits <- Reduce(abind_f, hem_est)
-#   vertex_ICC <- apply(combined_visits, 1:2, function(tX) {
-#     return(ICC(t(tX)))
-#   })
-#   return(vertex_ICC)
-# }, simplify = F)
+library(abind)
+abind_f <- function(...) abind(..., along = 3)
+ICC_values_separate <- sapply(session_estimates, function(hem_est) {
+  # combined_visits <- Reduce(abind_f, hem_est)
+  # vertex_ICC <- apply(combined_visits, 1:2, function(tX) {
+  #   return(ICC(t(tX)))
+  # })
+  # return(vertex_ICC)
+  sessions <- 1:2
+  session_names <- c("LR","RL")
+  sess_ICC <- sapply(sessions, function(si) {
+    sess_est <- sapply(hem_est, function(visit_est) {
+      return(visit_est[,,si,])
+    }, simplify = F)
+    sess_comb <- Reduce(function(x,y) {abind(x,y,along = 4)},sess_est)
+    vertex_ICC <- apply(sess_comb,1:2, ICC)
+    return(vertex_ICC)
+  }, simplify = F)
+  names(sess_ICC) <- session_names
+  return(sess_ICC)
+}, simplify = F)
 # sapply(ICC_values_separate, function(x) summary(c(x)))
 # par(mfrow=c(2,4))
 # for(h in c('left','right')) {
@@ -165,18 +177,29 @@ for(h in c('left','right')) {
 par(mfrow=c(1,1))
 
 # >> Classical ----
-# session_estimates_classical <- readRDS(file.path(result_dir,"602_session_estimates_classical.rds"))
+session_estimates_classical <- readRDS(file.path(result_dir,"602_session_estimates_classical.rds"))
 avg_estimates_classical <- readRDS(file.path(result_dir,"602_avg_estimates_classical.rds"))
 # >>>> ICC using session estimates ----
-# library(abind)
-# abind_f <- function(...) abind(..., along = 3)
-# ICC_values_separate_classical <- sapply(session_estimates_classical, function(hem_est) {
-#   combined_visits <- Reduce(abind_f, hem_est)
-#   vertex_ICC <- apply(combined_visits, 1:2, function(tX) {
-#     return(ICC(t(tX)))
-#   })
-#   return(vertex_ICC)
-# }, simplify = F)
+library(abind)
+abind_f <- function(...) abind(..., along = 3)
+ICC_values_separate_classical <- sapply(session_estimates_classical, function(hem_est) {
+  # combined_visits <- Reduce(abind_f, hem_est)
+  # vertex_ICC <- apply(combined_visits, 1:2, function(tX) {
+  #   return(ICC(t(tX)))
+  # })
+  sessions <- 1:2
+  session_names <- c("LR","RL")
+  sess_ICC <- sapply(sessions, function(si) {
+    sess_est <- sapply(hem_est, function(visit_est) {
+      return(visit_est[,,si,])
+    }, simplify = F)
+    sess_comb <- Reduce(function(x,y) {abind(x,y,along = 4)},sess_est)
+    vertex_ICC <- apply(sess_comb,1:2, ICC)
+    return(vertex_ICC)
+  }, simplify = F)
+  names(sess_ICC) <- session_names
+  return(sess_ICC)
+}, simplify = F)
 # sapply(ICC_values_separate_classical, function(x) summary(c(x)))
 # par(mfrow=c(2,4))
 # for(h in c('left','right')) {
@@ -308,23 +331,46 @@ bayesian_icc_avg_cifti <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
 bayesian_icc_avg_cifti$data$cortex_left <- ICC_values_average$left
 bayesian_icc_avg_cifti$data$cortex_right <- ICC_values_average$right
 library(viridisLite)
-my_pal <- viridis(4)
-task_idx <- 4
-# for(i in 1:4) {
+my_pal <- c("black",viridis(4),"white")
+# >>>>>> Visual Cue and Tongue (idx = c(1,4)) ----
+# task_idx <- 1
+for(task_idx in c(1,4)) {
   plot(
     bayesian_icc_avg_cifti,
     idx = task_idx,
     hemisphere = 'both',
     title = paste("wICC (left, right) =", paste(bayes_wICC[task_idx,], collapse = ",")),
+    cex.title = 2,
     color_mode = 'sequential',
     colors = my_pal,
-    zlim = c(0,0.6/3,2*0.6/3,0.6),
+    legend_embed = F,
+    zlim = seq(0,0.6,length.out = 6),
     surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
     surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
     fname = paste0("plots/602_",task_file_names[task_idx],"_icc_bayesian.png")
   )
-# }
+}
 
+# >>>>>> Foot and Hand Tasks (idx = c(2,3)) ----
+task_idx <- 2:3
+hem <- c("left","right")
+for(ti in task_idx) {
+  for(h in 1:2) {
+    plot(
+      bayesian_icc_avg_cifti,
+      idx = ti,
+      hemisphere = hem[h],
+      title = paste("wICC =", bayes_wICC[ti,h]),
+      color_mode = 'sequential',
+      colors = my_pal,
+      legend_embed = F,
+      zlim = seq(0,0.6,length.out = 6),
+      surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+      surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+      fname = paste0("plots/602_",hem[h],"_",task_file_names[ti],"_icc_bayesian.png")
+    )
+  }
+}
 
 # >> Classical ----
 # >>>> Separate Estimates ----
@@ -351,19 +397,47 @@ classical_icc_avg_cifti <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
 classical_icc_avg_cifti$data$cortex_left <- ICC_values_average_classical$left
 classical_icc_avg_cifti$data$cortex_right <- ICC_values_average_classical$right
 library(viridisLite)
-my_pal <- viridis(4)
-task_idx <- 4
-# for(i in 1:4) {
+my_pal <- c("black",viridis(4),"white")
+# >>>>>> Visual Cue and Tongue (idx = c(1,4)) ----
+# task_idx <- 1
+for(task_idx in c(1,4)) {
   plot(
     classical_icc_avg_cifti,
     idx = task_idx,
     hemisphere = 'both',
     title = paste("wICC (left, right) =", paste(classical_wICC[task_idx,], collapse = ",")),
+    cex.title = 2,
     color_mode = 'sequential',
     colors = my_pal,
-    zlim = c(0,0.6/3,2*0.6/3,0.6),
+    legend_embed = F,
+    zlim = seq(0,0.6,length.out = 6),
     surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
     surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
     fname = paste0("plots/602_",task_file_names[task_idx],"_icc_classical")
   )
-# }
+}
+
+# >>>>>> Foot and Hand Tasks (idx = c(2,3)) ----
+task_idx <- 2:3
+hem <- c("left","right")
+for(ti in task_idx) {
+  for(h in 1:2) {
+    plot(
+      classical_icc_avg_cifti,
+      idx = ti,
+      hemisphere = hem[h],
+      title = paste("wICC =", classical_wICC[ti,h]),
+      color_mode = 'sequential',
+      colors = my_pal,
+      legend_embed = F,
+      zlim = seq(0,0.6,length.out = 6),
+      surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+      surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+      fname = paste0("plots/602_",hem[h],"_",task_file_names[ti],"_icc_classical.png")
+    )
+  }
+}
+
+# wICC scatterplot ----
+rownames(bayes_wICC) <- c("cue","foot","hand","tongue")
+rownames(classical_wICC) <- c("cue","foot","hand","tongue")

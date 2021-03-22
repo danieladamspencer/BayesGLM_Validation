@@ -1,3 +1,4 @@
+# SINGLE SUBJECT ----
 library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench/')
 library(INLA)
@@ -87,3 +88,34 @@ for(s in subjects) {
        zlim = c(-1,1))
 }
 
+# GROUP RESULTS ----
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW"
+result_files <- grep("_20210131.rds",list.files(result_dir), value = T)
+
+# Estimate Plots ----
+hem <- c("left","right")
+cifti_obj <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
+cifti_obj$data$cortex_left <- readRDS(file.path(result_dir,"HCP_BayesGLM2_45subj_result_left_thresh0_20210131.rds"))$estimates
+cifti_obj$data$cortex_right <- readRDS(file.path(result_dir,"HCP_BayesGLM2_45subj_result_right_thresh0_20210131.rds"))$estimates
+library(ciftiTools)
+ciftiTools.setOption('wb_path', "/Applications/workbench")
+
+# Grab analysis times from the result files ----
+library(tidyverse)
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW"
+result_files <- list.files(result_dir) %>%
+  grep(pattern = "500_", x = ., value = T)
+left_results <- grep("_left_", result_files, value = T)
+right_results <- grep("_right_", result_files, value = T)
+left_times <- sapply(left_results, function(file_n) {
+  readRDS(file.path(result_dir, file_n))$total_time
+})
+right_times <- sapply(right_results, function(file_n) {
+  readRDS(file.path(result_dir, file_n))$total_time
+})
+summary(left_times) / 3600
+summary(right_times) / 3600
+all_times <- c(rbind(left_times,right_times))
+summary(all_times) / 60
+sd(all_times / 3600)
+hist(all_times/3600)
