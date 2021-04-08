@@ -16,7 +16,7 @@ result_dir <- "~/github/BayesGLM_Validation/HCP_results/1k_results/PW" # Dan's M
 load(file.path(data_dir,"subjects.Rdata")) # Macbook Pro
 # load(file.path(main_dir,"subjects.Rdata")) # Mac Pro
 tasks <- c('cue','lf','lh','rf','rh','t') # Task data frame columns
-names_tasks <- c('cue','left foot','left hand','right foot','right hand','tongue')
+names_tasks <- c('cue','left_foot','left_hand','right_foot','right_hand','tongue')
 colors_tasks <- c('black',RColorBrewer::brewer.pal(5, 'Set2'))
 cols_LH <- c(1,4:6) #cue, right foot, right hand, tongue
 cols_RH <- c(1:3,6) #cue, left foot, left hand, tongue
@@ -44,7 +44,7 @@ for(subject in subjects) {
       fname2_ts <- file.path(dir2_s,'tfMRI_MOTOR_RL_Atlas.dtseries.nii')
     }
     #analyze hemispheres separately due to different in set of tasks
-    for(h in c(1)){
+    for(h in c(2)){
 
       #h=1 -- left hemisphere
       #h=2 -- right hemisphere
@@ -85,7 +85,7 @@ for(subject in subjects) {
                                  nuisance_include = c('drift','dHRF'),
 			                           scale_BOLD = TRUE,
 			                           scale_design = TRUE,
-                                 GLM_method = 'classical',
+                                 GLM_method = 'both',
 			                           ar_order = 6,
 			                           ar_smooth = 6,
                                  session_names = c('LR','RL'), # Multiple sessions

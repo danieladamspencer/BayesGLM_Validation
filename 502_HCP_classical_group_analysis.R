@@ -12,6 +12,36 @@ average_estimates <- sapply(classical_estimates, function(hem_est) {
 }, simplify = F)
 saveRDS(average_estimates, "HCP_results/5k_results/502_HCP_classical_group_PW_estimates.rds")
 
+# Average estimates by visit
+for(v in 1:2) {
+  visit_estimates <- sapply(classical_estimates, function(ce) {
+    visit_est <- ce[[paste0("visit",v)]]
+    avg_visit_est <- apply(visit_est,1:2,mean)
+    return(avg_visit_est)
+  })
+  saveRDS(visit_estimates,
+          paste0("HCP_results/5k_results/502_HCP_classical_group_PW_estimates_visit",v,".rds"))
+}
+
+# Average estimates by subsample
+sample_subjects <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/subsamples/501_sample_subjects_20210319.rds")
+classical_estimates <-
+  readRDS("HCP_results/5k_results/602_avg_estimates_PW_classical.rds")
+load("HCP_data/subjects.Rdata")
+subsamp_ests <- sapply(sample_subjects, function(num_sub) {
+  num_sampl <- apply(num_sub, 2, function(sample_sub) {
+    use_idx <- sapply(sample_sub, function(subj) which(subjects == subj))
+    out <- sapply(classical_estimates, function(hem_results) {
+      apply(hem_results$visit1[,,use_idx],1:2, mean)
+    })
+    return(out)
+  })
+  names(num_sampl) <- paste0("sample",1:10)
+  return(num_sampl)
+}, simplify = F)
+names(subsamp_ests) <- paste0(c(10,20,30),"subjects")
+saveRDS(subsamp_ests, "HCP_results/5k_results/group/502_HCP_classical_subsample_estimates.rds")
+
 # FWER ----
 # bonferroni_cutoff <- 0.01 / (4443+4444) # alpha = 0.01
 threshs <- c(0,0.5,1)

@@ -142,6 +142,10 @@ hcp_df <-
          Strength_Unadj, ProcSpeed_Unadj, Dexterity_Unadj) %>%
   pivot_wider(names_from = c(task,thr), values_from = area)
 
+hcp_df %>%
+  select(-ends_with("Unadj"), - subject) %>%
+  `*`((4443+4444)/100) %>% summary
+
 # Endurance ----
 # endurance_df <- select(hcp_df, Endurance_Unadj, starts_with("visit"))
 # plot(density(endurance_df$Endurance_Unadj))
