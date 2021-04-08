@@ -299,15 +299,21 @@
 
 # Calculate all activations ----
 library(BayesfMRI)
-result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session"
+library(parallel)
+cl <- makeCluster(6)
+# result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session"
+result_dir <- "~/Desktop"
 result_files <- list.files(result_dir, full.names = T)
-load("HCP_data/subjects.Rdata")
-subjects <- subjects[c(1,2,4)]
+# load("HCP_data/subjects.Rdata")
+load("/Users/Shared/Lab_Data/HCP_Motor_Task_Dan/subjects.Rdata")
+subjects <- subjects[-c(1,2,4)]
 all_activations <-
-  sapply(subjects, function(subject) {
-    sapply(c("LR","RL"), function(session) {
+  # sapply(subjects, function(subject) {
+  parSapplyLB(cl, subjects, function(subject, result_files){
+    library(BayesfMRI)
+    subject_activations <- sapply(c("LR","RL"), function(session) {
       session_activations <- sapply(paste0("visit",1:2), function(visit) {
-        sapply(c("left","right"), function(hem) {
+        hem_activations <- sapply(c("left","right"), function(hem) {
           L_or_R <- toupper(substring(hem,1,1))
           result_obj <-
             readRDS(grep(
@@ -330,16 +336,27 @@ all_activations <-
                 method = "classical",
                 threshold = threshold
               )
+            class_act <- classical_activations$activations[[paste0("cortex",L_or_R)]]$active
+            class_act <- matrix(as.numeric(class_act), nrow = nrow(class_act), ncol = ncol(class_act))
+            colnames(class_act) <- colnames(bayes_activations$activations[[paste0("cortex",L_or_R)]]$active)
+            bayes_act <- bayes_activations$activations[[paste0("cortex",L_or_R)]]$active
             return(
               list(
-                Bayes = bayes_activations$activations[[paste0("cortex",L_or_R)]]$active,
-                Classical = classical_activations$activations[[paste0("cortex",L_or_R)]]$active
+                Bayes = bayes_act,
+                Classical = class_act
               )
             )
-          }, simplify = F)
-        })
-      })
-    })
-  })
+          }, simplify = FALSE)
+          return(threshold_activations)
+        }, simplify = FALSE)
+        return(hem_activations)
+      }, simplify = FALSE)
+      return(session_activations)
+    }, simplify = FALSE)
+    return(subject_activations)
+  }, result_files = result_files, simplify = FALSE)
 
-saveRDS(all_activations, "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/605_all_activations.rds")
+  # })
+
+# saveRDS(all_activations, "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/605_all_activations.rds")
+saveRDS(all_activations, file = "~/Desktop/605_all_activations.rds")
