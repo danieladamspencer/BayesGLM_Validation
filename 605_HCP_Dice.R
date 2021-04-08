@@ -300,16 +300,16 @@
 # Calculate all activations ----
 library(BayesfMRI)
 library(parallel)
-cl <- makeCluster(6)
-# result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session"
-result_dir <- "~/Desktop"
+cl <- makeCluster(3)
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session"
+# result_dir <- "~/Desktop"
 result_files <- list.files(result_dir, full.names = T)
-# load("HCP_data/subjects.Rdata")
-load("/Users/Shared/Lab_Data/HCP_Motor_Task_Dan/subjects.Rdata")
-subjects <- subjects[-c(1,2,4)]
+load("HCP_data/subjects.Rdata")
+# load("/Users/Shared/Lab_Data/HCP_Motor_Task_Dan/subjects.Rdata")
+subjects <- subjects[c(1,2,4)]
 all_activations <-
   # sapply(subjects, function(subject) {
-  parSapplyLB(cl, subjects, function(subject, result_files){
+  parSapply(cl, subjects, function(subject, result_files){
     library(BayesfMRI)
     subject_activations <- sapply(c("LR","RL"), function(session) {
       session_activations <- sapply(paste0("visit",1:2), function(visit) {
@@ -358,5 +358,5 @@ all_activations <-
 
   # })
 
-# saveRDS(all_activations, "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/605_all_activations.rds")
-saveRDS(all_activations, file = "~/Desktop/605_all_activations.rds")
+saveRDS(all_activations, "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/605_all_activations.rds")
+# saveRDS(all_activations, file = "~/Desktop/605_all_activations.rds")
