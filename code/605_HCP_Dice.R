@@ -360,3 +360,35 @@ all_activations <-
 
 saveRDS(all_activations, "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/605_all_activations.rds")
 # saveRDS(all_activations, file = "~/Desktop/605_all_activations.rds")
+
+all_activations <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/605_all_activations.rds")
+library(tidyverse)
+overlap_df <-
+  reshape2::melt(all_activations, value.name = "active") %>%
+  rename(Model = L6,
+         threshold = L5,
+         hem = L4,
+         visit = L3,
+         session = L2,
+         subject = L1) %>%
+  mutate(threshold = c(0,0.5,1)[threshold]) %>%
+  group_by(subject, session, visit, hem, threshold, Model, Var2) %>%
+  mutate(area = sum(active)) %>%
+  group_by(subject, session, hem, threshold, Model, Var1, Var2) %>%
+  summarize(overlap = prod(active),
+            area = mean(area)) %>%
+  group_by(subject, session, hem, threshold, Model, Var2) %>%
+  summarize(overlap = sum(overlap),
+            area = mean(area))
+
+
+# cue_tongue_df <-
+  filter(overlap_df, Var2 %in% c("cue","tongue")) %>%
+  mutate(Var2 = droplevels(Var2)) %>%
+  pivot_wider(names_from = Var2, values_from = c(overlap,area)) %>%
+  group_by(subject, session, threshold, Model) %>%
+  summarize(overlap_cue = sum(overlap_cue),
+            overlap_tongue = sum(overlap_tongue),
+            area_cue = sum(area_cue),
+            area_tongue = sum(area_tongue)) #%>%
+  pivot_longer(cols = c(starts_with("overlap"), starts_with("area")),names_sep = "_", names_to = c("overlap","area"))
