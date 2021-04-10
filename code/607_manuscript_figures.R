@@ -1856,22 +1856,24 @@ for(subject in subjects) {
   }
 }
 
+sapply(out, function(x) sapply(x, function(y) table(apply(y,1,sum))))
+
 task_names <- c("cue","foot","hand","tongue")
 
-subj_1_labels <- mapply(function(act, nm) {
-  out <- act
-  out[out == 1] <- nm
-  return(out)
-}, act = split(out$`103818`$left, col(out$`103818`$left)), nm = task_names)
+# subj_1_labels <- mapply(function(act, nm) {
+#   out <- act
+#   out[out == 1] <- nm
+#   return(out)
+# }, act = split(out$`103818`$left, col(out$`103818`$left)), nm = task_names)
 
 
-sub1_label_vec <- unlist(apply(subj_1_labels,1,function(x) {
-  out <- NULL
-  u_x <- unique(x)
-  if(length(u_x) == 1) out <- NA
-  if(length(u_x) > 1) out <- paste(u_x[which(u_x != "0")], collapse = " & ")
-  return(out)
-}))
+# sub1_label_vec <- unlist(apply(subj_1_labels,1,function(x) {
+#   out <- NULL
+#   u_x <- unique(x)
+#   if(length(u_x) == 1) out <- NA
+#   if(length(u_x) > 1) out <- paste(u_x[which(u_x != "0")], collapse = " & ")
+#   return(out)
+# }))
 
 cifti_parcellation <- sapply(out, function(act_i) {
   subject_labels <- sapply(act_i, function(act_ih) {
