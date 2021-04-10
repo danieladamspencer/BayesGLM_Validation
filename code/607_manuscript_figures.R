@@ -176,6 +176,8 @@ for(subject in subjects) {
 
 # FIGURE 3: Single-subject activation overlap ----
 # >> Bayesian ----
+library(ciftiTools)
+ciftiTools.setOption('wb_path',"/Applications/workbench/")
 result_dir <- "HCP_results/5k_results/individual/PW/activations"
 load("HCP_data/subjects.Rdata")
 subjects <- subjects[c(1,2,4)]
@@ -185,6 +187,7 @@ thr_chr <- paste0("_thr",sub("\\.","",thr),"_")
 alpha <- 0.01
 alpha_chr <- paste0("alpha",sub("\\.","",alpha))
 col_pal <- c("pink","red")
+# col_pal <- grDevices::colorRampPalette(c("white","red"))(3)[-1]
 subject_files <- grep("503_", list.files(result_dir, full.names = T), value = T)
 subject_files <- unlist(sapply(subjects, grep, x = subject_files, value = T))
 subject_files <- unlist(sapply(thr_chr, grep, x = subject_files,  value=T))
@@ -215,7 +218,8 @@ for(subject in subjects) {
           )
         )
     }
-  plot(subject_cifti, fname = paste0("plots/603_subject_",subject,thresh,alpha_chr,"_num_active.png"),
+  plot(subject_cifti,
+       # fname = paste0("plots/603_subject_",subject,thresh,alpha_chr,"_num_active.png"),
        # title = paste("Subject",subject, "Tongue Task\nVisit Activations"),
        color_mode = "qualitative",colors = col_pal,
        surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
@@ -1823,3 +1827,80 @@ all_activations <-
       })
     })
   })
+
+# FIGURE 21: Motor Cortex Parcellation ----
+library(ciftiTools)
+ciftiTools.setOption('wb_path','/Applications/workbench/')
+library(BayesfMRI)
+load("HCP_data/subjects.Rdata")
+subjects <- subjects[c(1,2,3)]
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/all_sessions"
+result_files <- list.files(result_dir, full.names = T)
+result_files <- unlist(sapply(subjects, grep, x = result_files, value = T))
+result_files <- grep("_thr0.5.rds", result_files, value = T)
+out <- list()
+for(subject in subjects) {
+  out[[subject]] <- list()
+  for(hem in c("left","right")) {
+    out[[subject]][[hem]] <- list()
+    L_or_R <- toupper(substring(hem,1,1))
+    # result_obj <- readRDS(grep(paste0(subject,"_visit1_",hem), result_files, value = T))
+    result_obj <- readRDS(grep(paste0(subject,"_",hem), result_files, value = T))
+    # act_result <- id_activations_cifti(result_obj,alpha = 0.01,threshold = 1)
+    # act_mat <- act_result$activations[[paste0("cortex",L_or_R)]]$active
+    # overlap_idx <- which(apply(act_mat,1,sum) > 1)
+    # View(act_mat[overlap_idx,])
+    # out[[subject]][[hem]] <- table(apply(act_mat,1,sum))
+    act_mat <- result_obj$active
+    out[[subject]][[hem]] <- act_mat
+  }
+}
+
+task_names <- c("cue","foot","hand","tongue")
+
+subj_1_labels <- mapply(function(act, nm) {
+  out <- act
+  out[out == 1] <- nm
+  return(out)
+}, act = split(out$`103818`$left, col(out$`103818`$left)), nm = task_names)
+
+
+sub1_label_vec <- unlist(apply(subj_1_labels,1,function(x) {
+  out <- NULL
+  u_x <- unique(x)
+  if(length(u_x) == 1) out <- NA
+  if(length(u_x) > 1) out <- paste(u_x[which(u_x != "0")], collapse = " & ")
+  return(out)
+}))
+
+cifti_parcellation <- sapply(out, function(act_i) {
+  subject_labels <- sapply(act_i, function(act_ih) {
+    labels_mat <- mapply(function(act, nm) {
+      out <- act
+      out[out == 1] <- nm
+      return(out)
+    }, act = split(act_ih[,-1], col(act_ih[,-1])), nm = task_names[-1])
+    labels_vec <- unlist(apply(labels_mat,1,function(x) {
+      out <- NULL
+      u_x <- unique(x)
+      if(length(u_x) == 1) out <- NA
+      if(length(u_x) > 1) out <- paste(u_x[which(u_x != "0")], collapse = " & ")
+      return(out)
+    }))
+    return(as.matrix(as.numeric(factor(labels_vec))))
+  }, simplify = F)
+  cifti_out <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
+  cifti_out$data$cortex_left <- subject_labels$left
+  cifti_out$data$cortex_right <- subject_labels$right
+  return(cifti_out)
+}, simplify = F)
+
+view_xifti_surface(cifti_parcellation$`103818`,
+                   color_mode = "qualitative",
+                   title = "Subject A")
+view_xifti_surface(cifti_parcellation$`105923`,
+                   color_mode = "qualitative",
+                   title = "Subject B")
+view_xifti_surface(cifti_parcellation$`114823`,
+                   color_mode = "qualitative",
+                   title = "Subject C")
