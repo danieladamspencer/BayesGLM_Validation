@@ -300,3 +300,65 @@ sapply(subjects, function(x) {
   length(sfiles)
 })
 grep("151526", sub_files, value = T)
+
+# >> Calculate the VIF ----
+load("/Users/Shared/Lab_Data/HCP_Motor_Task_Dan/subjects.Rdata")
+main_dir <- "/Users/Shared/Lab_Data/HCP_Motor_Task_Dan"
+data_dir <- "/Users/Shared/Lab_Data/HCP_Motor_Task_Dan/visit1_data"
+ss_result_dir <- "HCP_results/5k_results/individual/PW/single_session"
+ss_result_files <- list.files(ss_result_dir, full.names = T)
+ss_result_files <- grep("500_", ss_result_files, value = T)
+library(clever)
+library(BayesfMRI)
+task_names <- c("cue","foot","hand","tongue")
+VIF_list <- list()
+for(subject in subjects) {
+  VIF_list[[subject]] <- list()
+  for(visit in 1:2) {
+    VIF_list[[subject]][[paste0("visit",visit)]] <- list()
+    #analyze hemispheres separately due to different in set of tasks
+    for(h in 1:2){
+      #h=1 -- left hemisphere
+      #h=2 -- right hemisphere
+      hem <- c('left','right')[h]
+      VIF_list[[subject]][[paste0("visit",visit)]][[hem]] <- list()
+
+      # find the VIF at the session level
+      for (s in 1:2) {
+        sess <- c("LR","RL")[s]
+        motion <-
+          as.matrix(
+            read.table(
+              file.path(
+                main_dir,
+                paste0("visit", visit, "_data"),
+                subject,
+                "MNINonLinear",
+                "Results",
+                paste0("tfMRI_MOTOR_",sess),
+                "Movement_Regressors.txt"
+              )
+            , header = FALSE)
+          )
+        design <- readRDS(
+          grep(
+            paste0(subject,"_visit",visit,"_",hem,"_5k_session",sess),
+            ss_result_files,
+            value = T
+          )
+        )$design[[1]]
+        drift1 <- (1:284)/284
+        drift <- cbind(drift1, drift1^2)
+        # design2 <- BayesfMRI:::nuisance_regress(design, cbind(motion, drift))
+        # myFD <- FD(X = motion[,1:6])
+        VIF_session <- matrix(NA,4,1)
+        for(k in 1:4){
+          VIF_session[k,1] <- 1 / (1 - summary(lm(design[,k] ~ as.matrix(cbind(motion, drift))))$r.squared)
+        }
+        rownames(VIF_session) <- task_names
+        VIF_list[[subject]][[paste0("visit",visit)]][[hem]][[sess]] <- VIF_session
+      }
+    }
+  }
+}
+saveRDS(VIF_list, "~/Desktop/505_VIF_list.rds")
