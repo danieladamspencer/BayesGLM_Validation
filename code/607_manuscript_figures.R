@@ -1906,3 +1906,15 @@ view_xifti_surface(cifti_parcellation$`105923`,
 view_xifti_surface(cifti_parcellation$`114823`,
                    color_mode = "qualitative",
                    title = "Subject C")
+
+# FIGURE 22: AR coefficient map ----
+left_obj <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/500_103818_visit1_left_5k_sessionLR_20210322.rds")
+right_obj <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/500_103818_visit1_right_5k_sessionLR_20210322.rds")
+cifti_obj <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
+cifti_obj$data$cortex_left <- left_obj$prewhitening_info$left$AR_coeffs
+cifti_obj$data$cortex_right <- right_obj$prewhitening_info$right$AR_coeffs
+library(ciftiTools)
+ciftiTools.setOption('wb_path','/Applications/workbench')
+plot(cifti_obj, hemisphere = 'left',idx = 1,
+     surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+     surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii")
