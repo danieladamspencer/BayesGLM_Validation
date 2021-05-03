@@ -67,6 +67,46 @@ combined_active_FWER <- sapply(classical_estimates, function(hem_res) {
 }, simplify = FALSE)
 saveRDS(combined_active_FWER, "HCP_results/5k_results/group/502_HCP_classical_activations_PW_FWER.rds")
 
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/classical"
+library(abind)
+result_files <- list.files(result_dir, full.names = T)
+result_files <- grep("_visit1_", result_files, value = T)
+load("HCP_data/subjects.Rdata")
+classical_estimates <- sapply(c('left','right'), function(hem) {
+  sapply(subjects, function(subject) {
+    filen <- grep(paste0(subject, "_visit1_",hem), result_files, value = T)
+    result_obj <- readRDS(filen)
+    out <-
+      abind(result_obj$betas_classical$LR$data[[paste0("cortex_", hem)]],
+            result_obj$betas_classical$RL$data[[paste0("cortex_", hem)]],
+            along = 3)
+    return(out)
+  }, simplify = "array")
+}, simplify = F)
+
+combined_active_FWER_visit1 <-
+  sapply(classical_estimates, function(hem_res) {
+    num_locs <- dim(hem_res)[1]
+    bonferroni_cutoff <- 0.01 / num_locs # alpha = 0.01
+    data_df <- reshape2::melt(hem_res)
+    vertex_lists <- split(data_df,data_df$Var1)
+    thresh_active <- sapply(threshs, function(thr) {
+      active_all <- sapply(vertex_lists, function(v_df){
+        vt_df <- split(v_df, v_df$Var2)
+        active_vertex <- sapply(vt_df, function(vt) {
+          ttest_res <- t.test(x = vt$value, mu = thr, alternative = "greater")
+          active_v <- ifelse(ttest_res$p.value < bonferroni_cutoff, 1, 0)
+          return(active_v)
+        }, simplify = "array")
+        return(active_vertex)
+      }, simplify = 'array')
+      return(t(active_all))
+    }, simplify = F)
+    names(thresh_active) <- paste0(threshs,"%")
+    return(thresh_active)
+  }, simplify = FALSE)
+
+saveRDS(combined_active_FWER_visit1, "HCP_results/5k_results/group/502_HCP_classical_activations_PW_visit1_FWER.rds")
 # FDR ----
 # BH_FDR <- function(p, FDR = 0.05) {
 #   p_rank <- rank(-p, na.last=T)

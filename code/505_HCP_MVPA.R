@@ -12,8 +12,18 @@
 # 7. All subjects, only the hand tasks, 0% group activation mask, don't scale prcomp. This one fails at the LASSO step, as zero predictors are found to be worth the penalty.
 
 # 1) Make masks ----
+# Using the group 0% active thresholds
 group_active_left <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/501_HCP_BayesGLM2_45subj_result_left_thresh0_20210317.rds")$active
 group_active_right <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/501_HCP_BayesGLM2_45subj_result_right_thresh0_20210318.rds")$active
+# Using the Yeo 17 parcellation
+library(ciftiTools)
+ciftiTools.setOption('wb_path','/Applications/workbench')
+yeo_17 <- read_cifti("/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/yeo_17_parcellation.dlabel.nii", resamp_res = 5000)
+somatomotor_idx <- grep("Somatomotor", rownames(yeo_17$meta$cifti$labels$`#1`))
+motor_mask <- list(
+  left = as.matrix(yeo_17$data$cortex_left[,1] %in% somatomotor_idx),
+  right = as.matrix(yeo_17$data$cortex_right[,1] %in% somatomotor_idx)
+)
 
 # Take out the regions around the temporal pole for the tongue task
 cifti_bad <- readRDS("HCP_results/505_cifti_bad.rds")

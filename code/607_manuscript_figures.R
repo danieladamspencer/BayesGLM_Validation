@@ -9,12 +9,13 @@ inla.setOption(pardiso.lic = "~/pardiso.lic")
 library(BayesfMRI)
 result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW"
 load("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/subjects.Rdata")
-subjects <- subjects[c(1,2,4)]
+subjects <- subjects[1]
 result_files <- list.files(result_dir, full.names = T)
 result_files <- c(sapply(subjects,grep, x = result_files, value = T))
 vis <- "visit1"
-task_idx <- 4
-task_name <- "Tongue"
+task_idx <- 3
+# task_name <- "Tongue"
+task_names <- c("visual_cue","foot","hand","tongue")
 result_files <- grep(vis, result_files, value = T)
 # >> Bayesian ----
 for(s in subjects) {
@@ -25,13 +26,26 @@ for(s in subjects) {
   right_result <- readRDS(grep('right',grep(s,result_files, value = T), value = T))
   cifti_template$data$cortex_right <- right_result$betas_Bayesian$avg$data$cortex_right
   rm(right_result)
-  plot(cifti_template, idx = task_idx, #title = paste("Subject",s,task_name,"Task"),
-       surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
-       surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
-       fname = paste0("plots/600_subject_",s,"_",tolower(task_name),"_estimates.png"),
-       zlim = c(-1,1), legend_embed = F)
+  if(task_idx %in% c(1,4)) {
+    plot(cifti_template, idx = task_idx, #title = paste("Subject",s,task_name,"Task"),
+         surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+         surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+         fname = paste0("plots/600_subject_",s,"_",task_names[task_idx],"_estimates.png"),
+         zlim = c(-1,1), legend_embed = F)
+  }
+  if(task_idx %in% c(2,3)) {
+    for(hem in c("left","right")) {
+      plot(cifti_template, idx = task_idx, hemisphere = hem,
+           surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+           surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+           fname = paste0("plots/600_subject_",s,"_",hem,"_",task_names[task_idx],"_estimates.png"),
+           zlim = c(-1,1), legend_embed = F)
+    }
+  }
 }
 # >> Classical ----
+# task_idx <- 1
+# task_names <- c("visual_cue","foot","hand","tongue")
 for(s in subjects) {
   cifti_template <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
   left_result <- readRDS(grep('left',grep(s,result_files, value = T), value = T))
@@ -40,55 +54,90 @@ for(s in subjects) {
   right_result <- readRDS(grep('right',grep(s,result_files, value = T), value = T))
   cifti_template$data$cortex_right <- right_result$betas_classical$avg$data$cortex_right
   rm(right_result)
-  plot(cifti_template, idx = task_idx, #title = paste("Subject",s,task_name,"Task"),
-       surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
-       surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
-       fname = paste0("plots/600_subject_",s,"_",tolower(task_name),"_classical_estimates.png"),
-       zlim = c(-1,1), legend_embed = F)
+  if(task_idx %in% c(1,4)) {
+    plot(cifti_template, idx = task_idx, #title = paste("Subject",s,task_name,"Task"),
+         surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+         surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+         fname = paste0("plots/600_subject_",s,"_",task_names[task_idx],"_classical_estimates.png"),
+         zlim = c(-1,1), legend_embed = F)
+  }
+  if(task_idx %in% c(2,3)) {
+    for(hem in c("left","right")) {
+      plot(cifti_template, idx = task_idx, hemisphere = hem,
+           surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+           surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+           fname = paste0("plots/600_subject_",s,"_",hem,"_",task_names[task_idx],"_classical_estimates.png"),
+           zlim = c(-1,1), legend_embed = F)
+    }
+  }
 }
 
 # FIGURE 2: Single-subject areas of activation ----
 library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
 # >> Bayesian ----
-# result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW"
-result_dir <- "HCP_results/5k_results"
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/single_subject"
 result_files <- list.files(result_dir, full.names = T)
-result_files <- grep("503_", result_files, value = T)
-result_files <- grep("_alpha001_", result_files, value = T)
-result_files <- grep("_thr01_", result_files, value = T, invert = T)
+result_files <- grep("501_", result_files, value = T)
+result_files <- grep("visit1", result_files, value = T)
+# result_files <- grep("_alpha001_", result_files, value = T)
+# result_files <- grep("_thr01_", result_files, value = T, invert = T)
 load("HCP_data/subjects.Rdata")
 subjects <- subjects[c(1,2,4)]
-threshs <- paste0("_thr",c("0","05","1"),"_")
+threshs <- paste0("_thr",c(0,0.5,1),".rds")
 hems <- c("left","right")
 # library(viridisLite)
 # col_pal <- rev(plasma(5)[3:5])
+task_names <- c("cue","foot","hand","tongue")
 light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
 col_pal <- c(light_orange,"red","purple")
 for(subject in subjects) {
-  subject_files <- grep(subject, result_files, value =T)
-  subject_files_left <- grep("left",subject_files, value = T)
-  subject_files_right <- grep("right",subject_files, value = T)
-  left_act <- sapply(threshs, function(thr) {
-    result <- readRDS(grep(thr,subject_files_left, value = T))
-    return(result$active[,4])
-  })
-  left_act <- apply(left_act,1,sum)
-  left_act <- as.matrix(ifelse(left_act == 0, NA, left_act))
-  right_act <- sapply(threshs, function(thr) {
-    result <- readRDS(grep(thr,subject_files_right, value = T))
-    return(result$active[,4])
-  })
-  right_act <- apply(right_act,1,sum)
-  right_act <- as.matrix(ifelse(right_act == 0, NA, right_act))
-  cifti_obj <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
-  cifti_obj$data$cortex_left <- left_act
-  cifti_obj$data$cortex_right <- right_act
-  plot(cifti_obj, color_mode = "qualitative", colors = col_pal,
-       # title = paste("Subject",subject, "Tongue Task"),
-       surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
-       surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
-       fname = paste0('plots/603_subject_',subject,"_tongue_task_activations.png"))
+  for(task_idx in 1:4) {
+    subject_files <- grep(subject, result_files, value =T)
+    subject_files_left <- grep("left",subject_files, value = T)
+    subject_files_right <- grep("right",subject_files, value = T)
+    left_act <- sapply(threshs, function(thr) {
+      result <- readRDS(grep(thr,subject_files_left, value = T))
+      return(result$active[,task_idx])
+    })
+    left_act <- apply(left_act,1,sum)
+    left_act <- as.matrix(ifelse(left_act == 0, NA, left_act))
+    right_act <- sapply(threshs, function(thr) {
+      result <- readRDS(grep(thr,subject_files_right, value = T))
+      return(result$active[,task_idx])
+    })
+    right_act <- apply(right_act,1,sum)
+    right_act <- as.matrix(ifelse(right_act == 0, NA, right_act))
+    cifti_obj <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
+    cifti_obj$data$cortex_left <- left_act
+    cifti_obj$data$cortex_right <- right_act
+    if(task_idx %in% c(1,4)) {
+      plot(cifti_obj, color_mode = "qualitative", colors = col_pal,
+           # title = paste("Subject",subject, "Tongue Task"),
+           surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+           surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+           fname = paste0('plots/607_bayes_',
+                          subject,
+                          "_visit1_",
+                          task_names[task_idx],
+                          "_activations.png"))
+    }
+    if(task_idx %in% c(2,3)) {
+      for(hem in c('left','right')) {
+        plot(cifti_obj, hemisphere = hem,
+             color_mode = "qualitative", colors = col_pal,
+             surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+             surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+             fname = paste0('plots/607_bayes_',
+                            subject,
+                            "_visit1_",
+                            hem,
+                            "_",
+                            task_names[task_idx],
+                            "_activations.png"))
+      }
+    }
+  }
 }
 
 # >> Classical ----
@@ -102,10 +151,11 @@ result_files <- list.files(results_dir,full.names = T)
 result_files <- c(unlist(sapply(subjects, grep, x = result_files, value = T)))
 result_files <- grep("visit1",result_files, value = T)
 # result_files <- grep("classical",result_files, value = T)
-task_idx <- 4
+# task_idx <- 4
 library(BayesfMRI)
 library(ciftiTools)
 ciftiTools::ciftiTools.setOption('wb_path',"/Applications/workbench")
+task_names <- c("cue",'foot','hand','tongue')
 # subject <- subjects[1]
 # gg_color_hue <- function(n) {
 #   hues = seq(15, 375, length = n + 1)
@@ -113,100 +163,134 @@ ciftiTools::ciftiTools.setOption('wb_path',"/Applications/workbench")
 # }
 # col_pal <- gg_color_hue(3)[2:3]
 light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
-col_pal <- c("yellow",light_orange,"red","purple")
+# col_pal <- c("yellow",light_orange,"red","purple")
+col_pal <- c(light_orange,"red","purple")
 for(subject in subjects) {
-  subject_files <- grep(subject,result_files, value = T)
-  left_result <- readRDS(grep('left',subject_files, value=T))
-  left_FDR <-
-    id_activations.classical(
-      left_result$GLMs_classical$cortexL,
-      alpha = 0.01,
-      correction = "FDR",
-      field_inds = task_idx
-    )$active
-  left_FWER <- sapply(c(0, 0.5, 1), function(thr) {
-    out <-
-      id_activations.classical(
-        left_result$GLMs_classical$cortexL,
-        alpha = 0.01,
-        correction = "FWER",
-        field_inds = task_idx,
-        threshold = thr
-      )$active
-    return(out)
-  }, simplify = T)
-  left_FWER <- as.matrix(apply(left_FWER,1,sum))
-  left_active <- left_FDR + left_FWER
-  medial_left <- !is.na(left_active[,1])
-  left_active <- as.matrix(left_active[,1][!is.na(left_active[,1])])
-  left_active[,1] <- ifelse(left_active[,1] == 0,NA,left_active[,1])
-  right_result <- readRDS(grep('right',subject_files, value=T))
-  right_FDR <-
-    id_activations.classical(
-      right_result$GLMs_classical$cortexR,
-      alpha = 0.01,
-      correction = "FDR",
-      field_inds = task_idx
-    )$active
-  right_FWER <- sapply(c(0, 0.5, 1), function(thr) {
-    out <-
-      id_activations.classical(
-        right_result$GLMs_classical$cortexR,
-        alpha = 0.01,
-        correction = "FWER",
-        field_inds = task_idx,
-        threshold = thr
-      )$active
-    return(out)
-  }, simplify = T)
-  right_FWER <- as.matrix(apply(right_FWER,1,sum))
-  right_active <- right_FDR + right_FWER
-  medial_right <- !is.na(right_active[,1])
-  right_active <- as.matrix(right_active[,1][!is.na(right_active[,1])])
-  right_active[,1] <- ifelse(right_active[,1] == 0,NA,right_active[,1])
-  cifti_active <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
-  cifti_active$data$cortex_left <- left_active
-  cifti_active$data$cortex_right <- right_active
-  plot(cifti_active, color_mode = "qualitative", colors = col_pal,
-       # title = paste("Subject",subject, "Tongue Task"),
-       surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
-       surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
-       fname = paste0('plots/603_subject_',subject,"_tongue_task_activations_classical.png"))
+  for(task_idx in 1:4) {
+    subject_files <- grep(subject,result_files, value = T)
+    left_result <- readRDS(grep('left',subject_files, value=T))
+    # left_FDR <-
+    #   id_activations.classical(
+    #     left_result$GLMs_classical$cortexL,
+    #     alpha = 0.01,
+    #     correction = "FDR",
+    #     field_inds = task_idx
+    #   )$active
+    left_FWER <- sapply(c(0, 0.5, 1), function(thr) {
+      out <-
+        id_activations.classical(
+          left_result$GLMs_classical$cortexL,
+          alpha = 0.01,
+          correction = "FWER",
+          field_inds = task_idx,
+          threshold = thr
+        )$active
+      return(out)
+    }, simplify = T)
+    left_FWER <- as.matrix(apply(left_FWER,1,sum))
+    # left_active <- left_FDR + left_FWER
+    left_active <- left_FWER
+    medial_left <- !is.na(left_active[,1])
+    left_active <- as.matrix(left_active[,1][!is.na(left_active[,1])])
+    left_active[,1] <- ifelse(left_active[,1] == 0,NA,left_active[,1])
+    right_result <- readRDS(grep('right',subject_files, value=T))
+    # right_FDR <-
+    #   id_activations.classical(
+    #     right_result$GLMs_classical$cortexR,
+    #     alpha = 0.01,
+    #     correction = "FDR",
+    #     field_inds = task_idx
+    #   )$active
+    right_FWER <- sapply(c(0, 0.5, 1), function(thr) {
+      out <-
+        id_activations.classical(
+          right_result$GLMs_classical$cortexR,
+          alpha = 0.01,
+          correction = "FWER",
+          field_inds = task_idx,
+          threshold = thr
+        )$active
+      return(out)
+    }, simplify = T)
+    right_FWER <- as.matrix(apply(right_FWER,1,sum))
+    # right_active <- right_FDR + right_FWER
+    right_active <- right_FWER
+    medial_right <- !is.na(right_active[,1])
+    right_active <- as.matrix(right_active[,1][!is.na(right_active[,1])])
+    right_active[,1] <- ifelse(right_active[,1] == 0,NA,right_active[,1])
+    cifti_active <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
+    cifti_active$data$cortex_left <- left_active
+    cifti_active$data$cortex_right <- right_active
+    if(task_idx %in% c(1,4)) {
+      plot(cifti_active, color_mode = "qualitative", colors = col_pal,
+           surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+           surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+           fname = paste0('plots/607_classical_',
+                          subject,
+                          "_visit1_",
+                          task_names[task_idx],
+                          "_activations.png"))
+    }
+    if(task_idx %in% c(2,3)) {
+      for(hem in c('left','right')) {
+        plot(cifti_active, hemisphere = hem,
+             color_mode = "qualitative", colors = col_pal,
+             surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+             surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+             fname = paste0('plots/607_classical_',
+                            subject,
+                            "_visit1_",
+                            hem,
+                            "_",
+                            task_names[task_idx],
+                            "_activations.png"))
+      }
+    }
+  }
 }
 
 # FIGURE 3: Single-subject activation overlap ----
+# First, make the palette
+pale_red <- colorRampPalette(c("white","red"), space = "rgb")(4)[2]
+pale_blue <- colorRampPalette(c("white","blue"), space = "rgb")(4)[2]
+purple_overlap <- colorRampPalette(c("red","blue"), space = "rgb")(3)[2]
+col_pal <- c(pale_red,pale_blue,purple_overlap)
+
 # >> Bayesian ----
 library(ciftiTools)
 ciftiTools.setOption('wb_path',"/Applications/workbench/")
-result_dir <- "HCP_results/5k_results/individual/PW/activations"
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/single_subject"
 load("HCP_data/subjects.Rdata")
 subjects <- subjects[c(1,2,4)]
 task_idx <- 4 # This is for the tongue
 thr <- c(0.5,1)
-thr_chr <- paste0("_thr",sub("\\.","",thr),"_")
+# thr_chr <- paste0("_thr",sub("\\.","",thr),"_")
 alpha <- 0.01
 alpha_chr <- paste0("alpha",sub("\\.","",alpha))
-col_pal <- c("pink","red")
+# col_pal is now defined above
+# col_pal <- c("pink","red")
 # col_pal <- grDevices::colorRampPalette(c("white","red"))(3)[-1]
-subject_files <- grep("503_", list.files(result_dir, full.names = T), value = T)
+subject_files <- list.files(result_dir, full.names = T)
+subject_files <- grep("501_", subject_files, value = T)
 subject_files <- unlist(sapply(subjects, grep, x = subject_files, value = T))
-subject_files <- unlist(sapply(thr_chr, grep, x = subject_files,  value=T))
-subject_files <- grep("_classical.rds",subject_files, value = T, invert = T)
+# subject_files <- unlist(sapply(thr_chr, grep, x = subject_files,  value=T))
+# subject_files <- grep("_classical.rds",subject_files, value = T, invert = T)
 for(subject in subjects) {
-  for(thresh in thr_chr) {
+  for(thresh in thr) {
     for(h in c('left','right')){
       for(v in 1:2) {
-        subject_file <- grep(paste0("_visit",v,"_subject_",subject,"_", h, thresh), subject_files, value = T)
+        # subject_file <- grep(paste0("_visit",v,"_subject_",subject,"_", h, thresh), subject_files, value = T)
+        subject_file <- grep(paste0("_subject_",subject,"_visit",v, "_", h, "_thr", thresh,".rds"), subject_files, value = T)
         subject_act <- readRDS(subject_file)
         L_or_R <- toupper(substring(h,1,1))
         if(v == 1){
           if(h == 'left') {
             subject_cifti <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
           }
-          subject_cifti$data[[paste0("cortex_",h)]] <- as.matrix(subject_act$activations[[paste0("cortex",L_or_R)]]$active[,task_idx])
+          subject_cifti$data[[paste0("cortex_",h)]] <- as.matrix(subject_act$active[,task_idx]*v)
         }
         if(v == 2) {
-          subject_cifti$data[[paste0("cortex_",h)]] <- as.matrix(subject_act$activations[[paste0("cortex",L_or_R)]]$active[,task_idx]) +
+          subject_cifti$data[[paste0("cortex_",h)]] <- as.matrix(subject_act$active[,task_idx]*v) +
             subject_cifti$data[[paste0("cortex_",h)]]
         }
       }
@@ -219,7 +303,7 @@ for(subject in subjects) {
         )
     }
   plot(subject_cifti,
-       # fname = paste0("plots/603_subject_",subject,thresh,alpha_chr,"_num_active.png"),
+       fname = paste0("plots/603_subject_",subject,"_thr",sub("\\.","",thresh),"_",alpha_chr,"_num_active.png"),
        # title = paste("Subject",subject, "Tongue Task\nVisit Activations"),
        color_mode = "qualitative",colors = col_pal,
        surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
@@ -238,7 +322,7 @@ thr <- c(0,0.5)
 thr_chr <- paste0("_thr",sub("\\.","",thr),"_")
 alpha <- 0.01
 alpha_chr <- paste0("alpha",sub("\\.","",alpha))
-col_pal <- c("pink","red")
+# col_pal <- c("pink","red") # col_pal is now defined above
 subject_files <- grep("503_", list.files(result_dir, full.names = T), value = T)
 subject_files <- unlist(sapply(subjects, grep, x = subject_files, value = T))
 subject_files <- unlist(sapply(thr_chr,grep,x = subject_files,  value=T))
@@ -264,7 +348,7 @@ for(subject in subjects) {
         }
         if(v == 2) {
           subject_cifti$data[[paste0("cortex_", h)]] <-
-            apply(subject_act$active,2,as.numeric)[in_mask,task_idx] +
+            apply(subject_act$active,2,as.numeric)[in_mask,task_idx]*v +
             # as.matrix(subject_act$active[in_mask, task_idx]) +
             subject_cifti$data[[paste0("cortex_", h)]]
         }
@@ -588,7 +672,7 @@ bstrap_CIs <- function(x, num_resamp = 5000, alpha = 0.05) {
 }
 
 dice_result_files <- list.files("HCP_results/5k_results", full.names = T)
-dice_result_files <- grep("604_", dice_result_files, value = T)
+dice_result_files <- grep("605_", dice_result_files, value = T)
 dice_result_files <- grep("_PW_", dice_result_files, value = T)
 dice_result_files <- grep("_Dice_", dice_result_files, value = T)
 dice_files <- list(Bayesian = grep("classical",dice_result_files, invert = T, value = T)[c(2,1,3)],
@@ -604,16 +688,24 @@ bstrap_ci_results <- sapply(dice_results, function(method_results) {
   },simplify = F)
 }, simplify = F)
 
+classical_standard <- reshape2::melt(bstrap_ci_results) %>%
+  mutate(task = task_names[Var2],
+         threshold = factor(L2, levels = c("0%","0.5%","1%"))) %>%
+  pivot_wider(names_from = Var1, values_from = value) %>%
+  filter(L1 == "Classical", threshold == "0%")
+
 library(tidyverse)
 dice_ci_plot <- reshape2::melt(bstrap_ci_results) %>%
   mutate(task = task_names[Var2],
          threshold = factor(L2, levels = c("0%","0.5%","1%"))) %>%
   pivot_wider(names_from = Var1, values_from = value) %>%
   ggplot() +
-  geom_errorbar(aes(ymin = Low, ymax = High, x = threshold, color = L1), position = position_dodge(width = 0.2), width = 0.2) +
-  geom_point(aes(y = Mean, x = threshold, color = L1), position = position_dodge(width = 0.2)) +
-  facet_wrap(vars(task), scales = "free", nrow = 3, ncol = 2) +
-  labs(x = "Activation Threshold", y = "Dice Coefficient") +
+  geom_vline(aes(xintercept = Mean, color = L1), data = classical_standard, show.legend = FALSE,lty = 2) +
+  geom_errorbar(aes(xmin = Low, xmax = High, y = threshold, color = L1), position = position_dodge(width = 0.2), width = 0.2) +
+  geom_point(aes(x = Mean, y = threshold, color = L1), position = position_dodge(width = 0.2)) +
+  # facet_wrap(vars(task), scales = "fixed", nrow = 3, ncol = 2) +
+  facet_grid(task~., scales = "fixed") +
+  labs(y = "Activation Threshold", x = "Dice Coefficient") +
   scale_color_discrete("") +
   theme_bw() +
   theme(panel.grid = element_blank(), legend.position = "top")
@@ -624,7 +716,7 @@ ggsave("plots/607_dice_ci_plot.png", width = 3, height = 7, plot = dice_ci_plot)
 
 
 area_result_files <- list.files("HCP_results/5k_results", full.names = T)
-area_result_files <- grep("604_", area_result_files, value = T)
+area_result_files <- grep("605_", area_result_files, value = T)
 area_result_files <- grep("_PW_", area_result_files, value = T)
 area_result_files <- grep("_overlap_", area_result_files, value = T)
 area_files <- list(Bayesian = grep("classical",area_result_files, invert = T, value = T)[c(2,1,3)],
@@ -633,16 +725,28 @@ area_results <- sapply(area_files, function(df) sapply(df,readRDS, simplify = F)
 names(area_results$Bayesian) <- c("0%","0.5%","1%")
 names(area_results$Classical) <- c("0%","0.5%","1%")
 
+count <- 0
+breaks_fun <- function(x) {
+  count <<- count %% 3 + 1L
+  switch(
+    count,
+    c(0, 750, 1500),
+    c(0, 50, 100),
+    c(0, 100, 200)
+  )
+}
+
 area_by_dice <- reshape2::melt(dice_results, value.name = "dice") %>%
   cbind(overlap = reshape2::melt(area_results, value.name = "overlap")$overlap) %>%
   mutate(Var2 = task_names[Var2],
          Var2 = as.factor(Var2),
          L2 = factor(L2, levels = c("0%","0.5%","1%"))) %>%
   ggplot() +
-  geom_point(aes(x = overlap/100, y = dice, color = L1)) +
+  geom_point(aes(x = overlap, y = dice, color = L1)) +
   facet_grid(Var2 ~ L2, scales = "free_x") +
   scale_color_discrete("") +
-  labs(y = "Dice Coefficient", x = "Size of Overlap (100s of vertices)") +
+  scale_x_continuous(breaks = breaks_fun, limits = c(0,NA))+
+  labs(y = "Dice Coefficient", x = "Size of Overlap (# of vertices)") +
   theme_bw() +
   theme(legend.position = "top", panel.grid = element_blank())
 
@@ -650,7 +754,7 @@ area_by_dice
 
 ggsave("plots/607_area_by_dice.png", width = 4.5, height = 7, plot = area_by_dice)
 
-# FIGURE 7: Group Estimates and Activations----
+ # FIGURE 7: Group Estimates and Activations----
 result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW"
 group_result_files <- list.files(result_dir)
 
@@ -857,6 +961,9 @@ for(ti in task_idx) {
 task_file_names <- c("visual_cue","foot","hand","tongue")
 task_names <- c("Visual Cue","Foot","Hand","Tongue")
 
+library(RColorBrewer)
+my_pal <- brewer.pal(6, "Accent")[c(3,5,6)]
+
 library(tidyverse)
 ICC_df <- reshape2::melt(ICC_quality) %>%
   mutate(Model = "Bayesian") %>%
@@ -866,6 +973,8 @@ ICC_df <- reshape2::melt(ICC_quality) %>%
   ) %>%
   mutate(task = task_names[Var2],
          quality = factor(value, labels = c("Poor","Fair","Good","Excellent")))
+
+ICC_df %>% filter(task == "Visual Cue") %>% group_by(Model) %>%  summarize(mean(value == 4))
 
 ICC_quality_df <- ICC_df %>%
   group_by(L1, Model, task, quality) %>%
@@ -889,7 +998,7 @@ icc_quality_plot <- group_by(ICC_quality_df,Model, task) %>%
   geom_bar(position = "stack", stat = "identity") +
   facet_wrap(~task, scales = "free_x") +
   # scale_y_continuous(breaks = c(0,1), labels = c(0,1))+
-  scale_fill_discrete("ICC Quality") +
+  scale_fill_manual("ICC Quality",values = my_pal) +
   labs(x = "", y = "Proportion of Data Locations") +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
@@ -905,8 +1014,8 @@ library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench/')
 task_file_names <- c("visual_cue","foot","hand","tongue")
 # >> Bayesian ----
-group_results_left <- readRDS("HCP_results/5k_results/group/501_HCP_BayesGLM2_45subj_result_left_thresh0_20210317.rds")
-group_results_right <- readRDS("HCP_results/5k_results/group/501_HCP_BayesGLM2_45subj_result_right_thresh0_20210318.rds")
+group_results_left <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/subsamples/501_HCP_BayesGLM2_45subj_visit1_result_left_thresh0_20210318.rds")
+group_results_right <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/subsamples/501_HCP_BayesGLM2_45subj_visit1_result_right_thresh0_20210319.rds")
 cifti_both <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
 cifti_both$data$cortex_left <- as.matrix(group_results_left$estimates)
 cifti_both$data$cortex_right <- as.matrix(group_results_right$estimates)
@@ -931,7 +1040,7 @@ for(i in c(2,3)) {
 }
 
 # >> Classical ----
-group_results_classical <- readRDS("HCP_results/5k_results/group/502_HCP_classical_group_estimates.rds")
+group_results_classical <- readRDS("HCP_results/5k_results/502_HCP_classical_group_PW_estimates_visit1.rds")
 cifti_classical <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
 cifti_classical$data$cortex_left <- as.matrix(group_results_classical$left)
 cifti_classical$data$cortex_right <- as.matrix(group_results_classical$right)
@@ -959,10 +1068,10 @@ for(i in c(2,3)) {
 library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
 # >> Bayesian ----
-result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW"
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/subsamples"
 # result_dir <- "HCP_results/5k_results/individual/PW"
 result_files <- list.files(result_dir, full.names = T)
-result_files <- grep("501_HCP_BayesGLM2_45subj", result_files, value = T)
+result_files <- grep("501_HCP_BayesGLM2_45subj_visit1", result_files, value = T)
 left_files <- grep("left",result_files, value = T)
 right_files <- grep("right",result_files, value = T)
 threshs <- paste0("_thresh",c("0","05","1"),"_")
@@ -1006,21 +1115,24 @@ for(task_idx in 1:4) {
 # As a note, this would not be necessary in the case of the current (2021-02-10)
 # state of the BayesfMRI package, but some retesting using the classical GLM
 # is necessary in order to obtain the standard errors of the estimates.
-results_dir <- "HCP_results/5k_results/group"
-result_files <- list.files(results_dir,full.names = T)
-FDR_result <- readRDS(grep("classical_activations_PW_FDR", result_files, value= T))
-FWER_result <- readRDS(grep("classical_activations_PW_FWER", result_files, value = T))
+# results_dir <- "HCP_results/5k_results/group"
+# result_files <- list.files(results_dir,full.names = T)
+# FDR_result <- readRDS(grep("classical_activations_PW_FDR", result_files, value= T))
+FWER_result <- readRDS("HCP_results/5k_results/group/502_HCP_classical_activations_PW_visit1_FWER.rds")
 library(BayesfMRI)
 library(ciftiTools)
 ciftiTools::ciftiTools.setOption('wb_path',"/Applications/workbench")
 light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
-col_pal <- c("yellow",light_orange,"red","purple")
+# col_pal <- c("yellow",light_orange,"red","purple")
+col_pal <- c(light_orange,"red","purple")
 
-left_active <- FDR_result$left$`0%`
-left_active <- left_active + Reduce(`+`, FWER_result$left)
+# left_active <- FDR_result$left$`0%`
+# left_active <- left_active + Reduce(`+`, FWER_result$left)
+left_active <- Reduce(`+`, FWER_result$left)
 left_active[left_active == 0] <- NA
-right_active <- FDR_result$right$`0%`
-right_active <- right_active + Reduce(`+`, FWER_result$right)
+# right_active <- FDR_result$right$`0%`
+# right_active <- right_active + Reduce(`+`, FWER_result$right)
+right_active <- Reduce(`+`, FWER_result$right)
 right_active[right_active == 0] <- NA
 cifti_classical <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
 cifti_classical$data$cortex_left <- left_active
@@ -1053,12 +1165,12 @@ result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/indi
 result_files <- list.files(result_dir, full.names = T)
 result_files <- grep(".rds", result_files, value= T)
 load("HCP_data/subjects.Rdata")
-subjects <- subjects[c(1,2,4)]
-sessions <- c("RL")
-task_idx <- 4
+subjects <- subjects[1]
+sessions <- c("LR")
+task_idx <- 3
 task_names <- c("visual_cue","foot","hand","tongue")
 for(subject in subjects) {
-  for(v in 1:2) {
+  for(v in 1) {
     for(sess in sessions) {
       cifti_obj <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
       for(h in c("left","right")) {
@@ -1070,23 +1182,48 @@ for(subject in subjects) {
           ))
         cifti_obj$data[[paste0("cortex_",h)]] <- result_obj$betas_Bayesian[[sess]]$data[[paste0("cortex_",h)]]
       }
-      plot(
-        cifti_obj,
-        idx = task_idx,zlim = c(-1,1), legend_embed = F,
-        fname = paste0(
-          "plots/607_bayes_",
-          subject,
-          "_visit",
-          v,
-          "_session",
-          sess,
-          "_",
-          task_names[task_idx],
-          "_estimate.png"
-        ),
-        surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
-        surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
-      )
+      if(task_idx %in% c(1,4)) {
+        plot(
+          cifti_obj,
+          idx = task_idx,zlim = c(-1,1), legend_embed = F,
+          fname = paste0(
+            "plots/607_bayes_",
+            subject,
+            "_visit",
+            v,
+            "_session",
+            sess,
+            "_",
+            task_names[task_idx],
+            "_estimate.png"
+          ),
+          surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+          surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
+        )
+      }
+      if(task_idx %in% c(2,3)) {
+        for(hem in c('left','right')) {
+          plot(
+            cifti_obj, hemisphere = hem,
+            idx = task_idx,zlim = c(-1,1), legend_embed = F,
+            fname = paste0(
+              "plots/607_bayes_",
+              subject,
+              "_visit",
+              v,
+              "_session",
+              sess,
+              "_",
+              hem,
+              "_",
+              task_names[task_idx],
+              "_estimate.png"
+            ),
+            surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+            surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
+          )
+        }
+      }
     }
   }
 }
@@ -1099,12 +1236,12 @@ result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/indi
 result_files <- list.files(result_dir, full.names = T)
 result_files <- grep(".rds", result_files, value= T)
 load("HCP_data/subjects.Rdata")
-subjects <- subjects[c(1,2,4)]
-sessions <- c("RL")
-task_idx <- 4
+subjects <- subjects[1]
+sessions <- c("LR")
+task_idx <- 3
 task_names <- c("visual_cue","foot","hand","tongue")
 for(subject in subjects) {
-  for(v in 1:2) {
+  for(v in 1) {
     for(sess in sessions) {
       cifti_obj <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
       for(h in c("left","right")) {
@@ -1116,23 +1253,48 @@ for(subject in subjects) {
           ))
         cifti_obj$data[[paste0("cortex_",h)]] <- result_obj$betas_classical[[sess]]$data[[paste0("cortex_",h)]]
       }
-      plot(
-        cifti_obj,
-        idx = task_idx,zlim = c(-1,1), legend_embed = F,
-        fname = paste0(
-          "plots/607_classical_",
-          subject,
-          "_visit",
-          v,
-          "_session",
-          sess,
-          "_",
-          task_names[task_idx],
-          "_estimate.png"
-        ),
-        surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
-        surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
-      )
+      if(task_idx %in% c(1,4)) {
+        plot(
+          cifti_obj,
+          idx = task_idx,zlim = c(-1,1), legend_embed = F,
+          fname = paste0(
+            "plots/607_classical_",
+            subject,
+            "_visit",
+            v,
+            "_session",
+            sess,
+            "_",
+            task_names[task_idx],
+            "_estimate.png"
+          ),
+          surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+          surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
+        )
+      }
+      if(task_idx %in% c(2,3)) {
+        for(hem in c("left","right")) {
+          plot(
+            cifti_obj, hemisphere = hem,
+            idx = task_idx,zlim = c(-1,1), legend_embed = F,
+            fname = paste0(
+              "plots/607_classical_",
+              subject,
+              "_visit",
+              v,
+              "_session",
+              sess,
+              "_",
+              hem,
+              "_",
+              task_names[task_idx],
+              "_estimate.png"
+            ),
+            surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+            surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
+          )
+        }
+      }
     }
   }
 }
@@ -1146,58 +1308,89 @@ result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/indi
 result_files <- list.files(result_dir, full.names = T)
 result_files <- grep(".rds", result_files, value= T)
 load("HCP_data/subjects.Rdata")
-subjects <- subjects[c(1,2,4)]
-sessions <- c("RL")
-task_idx <- 4
-task_names <- c("visual_cue","foot","hand","tongue")
+subjects <- subjects[1]
+sessions <- c("LR")
+# task_idx <- 1
+task_names <- c("cue","foot","hand","tongue")
 thresholds <- c(0,0.5,1)
 light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
 col_pal <- c(light_orange,"red","purple")
 for(subject in subjects) {
-  for(v in 1:2) {
+  for(v in 1) {
     for(sess in sessions) {
       cifti_obj <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
-      for(h in c("left","right")) {
-        L_or_R <- toupper(substring(h,1,1))
-        result_obj <-
-          readRDS(grep(
-            paste0("500_", subject, "_visit", v, "_", h, "_5k_session", sess),
-            result_files,
-            value = T
-          ))
-        active <- vector('numeric', length = nrow(result_obj$betas_Bayesian[[sess]]$data[[paste0("cortex_",h)]]))
-        for(thr in thresholds){
-          act_obj <-
-            id_activations_cifti(
-              model_obj = result_obj,
-              field_names = task_names[task_idx],
-              alpha = 0.01,
-              method = "Bayesian",
-              threshold = thr
-            )
-          active <- active + act_obj$activations[[paste0("cortex",L_or_R)]]$active[,1]
+      for(task_idx in 1:3) {
+        for(h in c("left","right")) {
+          not_h <- grep(h, c("left","right"), value = T, invert = T)
+          if(task_idx %in% c(1,4)) fld_nm <- task_names[task_idx]
+          if(task_idx %in% c(2,3)) fld_nm <- paste0(not_h,"_",task_names[task_idx])
+          L_or_R <- toupper(substring(h,1,1))
+          result_obj <-
+            readRDS(grep(
+              paste0("500_", subject, "_visit", v, "_", h, "_5k_session", sess),
+              result_files,
+              value = T
+            ))
+          active <- vector('numeric', length = nrow(result_obj$betas_Bayesian[[sess]]$data[[paste0("cortex_",h)]]))
+          for(thr in thresholds){
+            act_obj <-
+              id_activations_cifti(
+                model_obj = result_obj,
+                field_names = fld_nm,
+                alpha = 0.01,
+                method = "Bayesian",
+                threshold = thr
+              )
+            active <- active + act_obj$activations[[paste0("cortex",L_or_R)]]$active[,1]
+          }
+          active[active == 0] <- NA
+          cifti_obj$data[[paste0("cortex_",h)]] <- as.matrix(active)
         }
-        active[active == 0] <- NA
-        cifti_obj$data[[paste0("cortex_",h)]] <- as.matrix(active)
+        if(task_idx %in% c(1,4)) {
+          plot(
+            cifti_obj,
+            zlim = c(-1,1), legend_embed = F,
+            color_mode = "qualitative", colors = col_pal,
+            fname = paste0(
+              "plots/607_bayes_",
+              subject,
+              "_visit",
+              v,
+              "_session",
+              sess,
+              "_",
+              task_names[task_idx],
+              "_activations.png"
+            ),
+            surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+            surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
+          )
+        }
+        if(task_idx %in% c(2,3)) {
+          for(hem in c("left","right")) {
+            plot(
+              cifti_obj, hemisphere = hem,
+              zlim = c(-1,1), legend_embed = F,
+              color_mode = "qualitative", colors = col_pal,
+              fname = paste0(
+                "plots/607_bayes_",
+                subject,
+                "_visit",
+                v,
+                "_session",
+                sess,
+                "_",
+                hem,
+                "_",
+                task_names[task_idx],
+                "_activations.png"
+              ),
+              surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+              surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
+            )
+          }
+        }
       }
-      plot(
-        cifti_obj,
-        zlim = c(-1,1), legend_embed = F,
-        color_mode = "qualitative", colors = col_pal,
-        fname = paste0(
-          "plots/607_bayes_",
-          subject,
-          "_visit",
-          v,
-          "_session",
-          sess,
-          "_",
-          task_names[task_idx],
-          "_activations.png"
-        ),
-        surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
-        surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
-      )
     }
   }
 }
@@ -1209,58 +1402,89 @@ result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/indi
 result_files <- list.files(result_dir, full.names = T)
 result_files <- grep(".rds", result_files, value= T)
 load("HCP_data/subjects.Rdata")
-subjects <- subjects[c(1,2,4)]
-sessions <- c("LR","RL")
-task_idx <- 4
-task_names <- c("visual_cue","foot","hand","tongue")
+subjects <- subjects[1]
+sessions <- c("LR")
+# task_idx <- 4
+task_names <- c("cue","foot","hand","tongue")
 thresholds <- c(0,0.5,1)
 light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
 col_pal <- c(light_orange,"red","purple")
 for(subject in subjects) {
-  for(v in 1:2) {
+  for(v in 1) {
     for(sess in sessions) {
-      cifti_obj <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
-      for(h in c("left","right")) {
-        L_or_R <- toupper(substring(h,1,1))
-        result_obj <-
-          readRDS(grep(
-            paste0("500_", subject, "_visit", v, "_", h, "_5k_session", sess),
-            result_files,
-            value = T
-          ))
-        active <- vector('numeric', length = nrow(result_obj$betas_Bayesian[[sess]]$data[[paste0("cortex_",h)]]))
-        for(thr in thresholds){
-          act_obj <-
-            id_activations_cifti(
-              model_obj = result_obj,
-              field_names = task_names[task_idx],
-              alpha = 0.01,
-              method = "classical",
-              threshold = thr
-            )
-          active <- active + act_obj$activations[[paste0("cortex",L_or_R)]]$active[,1]
+      for(task_idx in 1:4) {
+        cifti_obj <- readRDS("HCP_data/603_cifti_5k_template_whole.rds")
+        for(h in c("left","right")) {
+          not_h <- grep(h, c("left","right"), value = T, invert = T)
+          if(task_idx %in% c(1,4)) fld_nm <- task_names[task_idx]
+          if(task_idx %in% c(2,3)) fld_nm <- paste0(not_h,"_",task_names[task_idx])
+          L_or_R <- toupper(substring(h,1,1))
+          result_obj <-
+            readRDS(grep(
+              paste0("500_", subject, "_visit", v, "_", h, "_5k_session", sess),
+              result_files,
+              value = T
+            ))
+          active <- vector('numeric', length = nrow(result_obj$betas_Bayesian[[sess]]$data[[paste0("cortex_",h)]]))
+          for(thr in thresholds){
+            act_obj <-
+              id_activations_cifti(
+                model_obj = result_obj,
+                field_names = fld_nm,
+                alpha = 0.01,
+                method = "classical",
+                threshold = thr
+              )
+            active <- active + act_obj$activations[[paste0("cortex",L_or_R)]]$active[,1]
+          }
+          active[active == 0] <- NA
+          cifti_obj$data[[paste0("cortex_",h)]] <- as.matrix(active)
         }
-        active[active == 0] <- NA
-        cifti_obj$data[[paste0("cortex_",h)]] <- as.matrix(active)
+        if(task_idx %in% c(1,4)) {
+          plot(
+            cifti_obj,
+            zlim = c(-1,1), legend_embed = F,
+            color_mode = "qualitative", colors = col_pal,
+            fname = paste0(
+              "plots/607_classical_",
+              subject,
+              "_visit",
+              v,
+              "_session",
+              sess,
+              "_",
+              task_names[task_idx],
+              "_activations.png"
+            ),
+            surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+            surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
+          )
+        }
+        if(task_idx %in% c(2,3)) {
+          for(hem in c('left','right')){
+            plot(
+              cifti_obj, hemisphere = hem,
+              zlim = c(-1,1), legend_embed = F,
+              color_mode = "qualitative", colors = col_pal,
+              fname = paste0(
+                "plots/607_classical_",
+                subject,
+                "_visit",
+                v,
+                "_session",
+                sess,
+                "_",
+                hem,
+                "_",
+                task_names[task_idx],
+                "_activations.png"
+              ),
+              surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+              surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
+            )
+          }
+        }
       }
-      plot(
-        cifti_obj,
-        zlim = c(-1,1), legend_embed = F,
-        color_mode = "qualitative", colors = col_pal,
-        fname = paste0(
-          "plots/607_classical_",
-          subject,
-          "_visit",
-          v,
-          "_session",
-          sess,
-          "_",
-          task_names[task_idx],
-          "_activations.png"
-        ),
-        surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
-        surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
-      )
     }
   }
 }
@@ -1589,10 +1813,11 @@ library(tidyverse)
 # >> Bayesian ----
 # >>>> Group ----
 bayes_group_files <- list.files(
-  "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW",
+  "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/subsamples",
   full.names = T) %>%
   grep(pattern = "501_",x = .,value = T) %>%
-  grep(pattern = "_visit",x = .,value = T, invert = T)
+  grep(pattern = "_visit1",x = .,value = T, invert = F) %>%
+  grep(pattern = "_45subj_", x = ., value = T)
 
 bayes_group_num_active <- sapply(paste0("_thresh",c("0","05","1"),"_"), function(thr_chr) {
   sapply(c("left","right"), function(hem) {
@@ -1608,24 +1833,32 @@ reshape2::melt(bayes_group_num_active)
 # >>>> Subject ----
 load("HCP_data/subjects.Rdata")
 bayes_subject_files <- list.files(
-  "HCP_results/5k_results/individual/PW/activations",
+  "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/single_subject",
   full.names = T) %>%
-  grep(pattern = "503_",x = ., value = T) %>%
-  grep(pattern = "classical",x = ., value = T, invert = T)
+  grep(pattern = "501_", x = ., value = T)
+# bayes_subject_files <- list.files(
+#   "HCP_results/5k_results/individual/PW/activations",
+#   full.names = T) %>%
+#   grep(pattern = "503_",x = ., value = T) %>%
+#   grep(pattern = "classical",x = ., value = T, invert = T)
 
 # subjects <- subjects[-seq(3)]
 bayes_subject_num_active <- sapply(subjects, function(subject) {
-  sapply(paste0("visit",1:2), function(vis) {
+  sapply(paste0("visit",1), function(vis) {
     sapply(c('left','right'), function(hem) {
-      L_or_R <- toupper(substring(hem,1,1))
+      # L_or_R <- toupper(substring(hem,1,1))
       all_thr <- sapply(c(0,0.5,1), function(thr) {
-        thr_chr <- paste0("thr",sub("\\.","", as.character(thr)),"_")
+        # thr_chr <- paste0("thr",sub("\\.","", as.character(thr)),"_")
+        # result_file <- grep(
+        #   paste0(vis,"_subject_",subject,"_",hem,"_",thr_chr),
+        #   bayes_subject_files, value = T
+        # )
         result_file <- grep(
-          paste0(vis,"_subject_",subject,"_",hem,"_",thr_chr),
+          paste0(subject,"_",vis,"_",hem,"_thr",thr,".rds"),
           bayes_subject_files, value = T
         )
         result_obj <- readRDS(result_file)
-        out <- apply(result_obj$activations[[paste0("cortex",L_or_R)]]$active,2,sum)
+        out <- apply(result_obj$active,2,sum)
         return(as.matrix(out))
       }, simplify = F)
       names(all_thr) <- c(0,0.5,1)
@@ -1658,7 +1891,7 @@ classical_subject_files <- list.files(
   grep(pattern = "classical",x = ., value = T, invert = F)
 
 classical_subject_num_active <- sapply(subjects, function(subject) {
-  sapply(paste0("visit",1:2), function(vis) {
+  sapply(paste0("visit",1), function(vis) {
     sapply(c('left','right'), function(hem) {
       L_or_R <- toupper(substring(hem,1,1))
       all_thr <- sapply(c(0,0.5,1), function(thr) {
@@ -1724,18 +1957,23 @@ group_activations_df <-
   select(-ends_with("_cue"), -ends_with("_tongue")) %>%
   pivot_longer(cols = -c(thresh,model), names_to = "task", values_to = "activations") %>%
   mutate(task = sub("_"," ", task),
-         thresh = as.numeric(thresh))
+         thresh = as.numeric(thresh)) %>%
+  filter(task != "cue")
+
+my_shapes <- c("B","C")
 
 num_activations_plots <- map(c(0,0.5,1), function(thr) {
   group_df <- filter(group_activations_df, thresh ==thr)
   out <- subject_activations_df %>%
-    filter(thresh == thr) %>%
+    filter(thresh == thr,
+           task != "cue") %>%
     ggplot() +
     # geom_boxplot(aes(x = model, y = activations + 1, color = model)) +
-    geom_jitter(aes(x = task, y = activations, color = task), width = 0.1, height = 0, alpha = 0.3) +
-    geom_point(aes(x = task, y = activations, fill = task), data = group_df, size = 4, shape = 1) +
+    geom_jitter(aes(x = task, y = activations, color = model), width = 0.1, height = 0, alpha = 0.3) +
+    geom_point(aes(x = task, y = activations, shape = model), data = group_df, size = 4, show.legend = FALSE) +
+    scale_shape_manual("",values = c("B","C")) +
     # facet_wrap(~task) +
-    facet_grid(model~thresh, scales = "free", labeller = label_bquote(cols = gamma == .(thresh)~'%')) +
+    facet_grid(~thresh, scales = "free", labeller = label_bquote(cols = gamma == .(thresh)~'%')) +
     geom_hline(yintercept = 0) +
     labs(x = "",y = "Number of Active Locations") +
     # scale_y_log10() +
@@ -1745,11 +1983,51 @@ num_activations_plots <- map(c(0,0.5,1), function(thr) {
   return(out)
 })
 
+group_bayes_df <- filter(group_activations_df,
+                   model == "Bayes" & thresh == 0.5)
+group_classical_df <- filter(group_activations_df,
+                             model == "Classical" & thresh == 0)
+group_df <- full_join(group_bayes_df, group_classical_df) %>%
+  mutate(model = ifelse(model == "Bayes", "Bayesian GLM","Classical GLM"),
+         model_thresh = paste0(model," (",thresh,"%)"))
+subj_bayes_df <- filter(subject_activations_df,
+                        model == "Bayes", thresh == 0.5)
+subj_classical_df <- filter(subject_activations_df,
+                            model == "Classical", thresh == 0)
+subj_df <- full_join(subj_bayes_df, subj_classical_df)
+
+compare_num_plot <-
+  subj_df %>%
+  filter(task != "cue") %>%
+  mutate(model = ifelse(model == "Bayes", "Bayesian GLM","Classical GLM"),
+         model_thresh = paste0(model," (",thresh,"%)")) %>%
+  ggplot() +
+  # geom_boxplot(aes(x = model, y = activations + 1, color = model)) +
+  geom_boxplot(aes(x = task, y = activations), outlier.alpha = 0, width = 0.4) +
+  geom_jitter(aes(x = task, y = activations, color = task), width = 0.2, height = 0, alpha = 0.3) +
+  geom_point(aes(x = task, y = activations, color = task), shape = 19, data = group_df, size = 4, show.legend = FALSE) +
+  geom_point(aes(x = task, y = activations), shape = 1, data = group_df, size = 4, show.legend = FALSE) +
+  # scale_shape_manual("",values = c("B","C")) +
+  # facet_wrap(~task) +
+  # facet_grid(~thresh, scales = "free", labeller = label_bquote(cols = gamma == .(thresh)~'%')) +
+  facet_grid(model_thresh~., scales = "free") +
+  geom_hline(yintercept = 0) +
+  labs(x = "",y = "Number of Active Locations") +
+  # scale_y_log10() +
+  theme_classic() +
+  # theme(axis.text.x = element_text(angle = 90,hjust = 1, vjust = 0.5), legend.position = "none")
+  theme(legend.position = "none", text = element_text(size = 10))
+
+compare_num_plot
+
+ggsave("plots/607_compare_num_plot.png", width = 5, height = 4)
+
 # library(gridExtra)
 # marrangeGrob(grobs = num_activations_plots, nrow = 1, ncol = 3, top ="")
 
 library(ggpubr)
 num_activations_plot <- ggarrange(plotlist = num_activations_plots, nrow = 1, ncol = 3)
+num_activations_plot
 ggsave("plots/607_num_activations_plot.png", width = 10, height = 7)
 
 # FIGURE 18: Single- vs. Multi-session estimates ----
@@ -1918,3 +2196,487 @@ ciftiTools.setOption('wb_path','/Applications/workbench')
 plot(cifti_obj, hemisphere = 'left',idx = 1,
      surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
      surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii")
+
+# FIGURE 23: Single-subject MSE ----
+bayes_result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW"
+classical_result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/classical"
+
+load("HCP_data/subjects.Rdata")
+
+classical_visit2 <- sapply(subjects, function(subject) {
+  classical_file_left <- grep(paste0(subject,"_visit2_left"), list.files(classical_result_dir, full.names = T), value = T)
+  classical_file_right <- grep(paste0(subject,"_visit2_right"), list.files(classical_result_dir, full.names = T), value = T)
+  class_visit2_est <- list(
+    left = readRDS(classical_file_left)$betas_classical$avg$data$cortex_left,
+    right = readRDS(classical_file_right)$betas_classical$avg$data$cortex_right
+  )
+  return(class_visit2_est)
+}, simplify = FALSE)
+
+# bayes_visit1_est <- list()
+# for(subject in subjects) {
+#   result_file_left <- grep(paste0(subject,"_visit1_left"), list.files(bayes_result_dir, full.names = T), value = T)
+#   result_file_right <- grep(paste0(subject,"_visit1_right"), list.files(bayes_result_dir, full.names = T), value = T)
+#   ests <- list(
+#     left = readRDS(result_file_left)$betas_Bayesian$avg$data$cortex_left,
+#     right = readRDS(result_file_right)$betas_Bayesian$avg$data$cortex_right
+#   )
+#   bayes_visit1_est[[subject]] <- ests
+# }
+# saveRDS(bayes_visit1_est, "HCP_results/5k_results/607_bayes_visit1_est.rds")
+bayes_visit1 <- readRDS("HCP_results/5k_results/607_bayes_visit1_est.rds")
+
+classical_visit1 <- sapply(subjects, function(subject) {
+  classical_file_left <- grep(paste0(subject,"_visit1_left"), list.files(classical_result_dir, full.names = T), value = T)
+  classical_file_right <- grep(paste0(subject,"_visit1_right"), list.files(classical_result_dir, full.names = T), value = T)
+  class_visit1_est <- list(
+    left = readRDS(classical_file_left)$betas_classical$avg$data$cortex_left,
+    right = readRDS(classical_file_right)$betas_classical$avg$data$cortex_right
+  )
+  return(class_visit1_est)
+}, simplify = FALSE)
+
+classical_mse <- mapply(function(est,tru) {
+  subj_sqerr <- mapply(function(e,t){
+    err <- (e - t)^2
+    return(err)
+  }, e = est, t = tru, SIMPLIFY = F)
+  tongue <- mean(c(subj_sqerr[[1]][,1],subj_sqerr[[1]][,1]))
+  cue <- mean(c(subj_sqerr[[1]][,4],subj_sqerr[[1]][,4]))
+  right_foot <- mean(subj_sqerr[[1]][,2])
+  left_foot <- mean(subj_sqerr[[2]][,2])
+  right_hand <- mean(subj_sqerr[[1]][,3])
+  left_hand <- mean(subj_sqerr[[2]][,3])
+  subj_mse_df <- data.frame(
+    cue = cue,
+    right_foot = right_foot,
+    right_hand = right_hand,
+    left_foot = left_foot,
+    left_hand = left_hand,
+    tongue = tongue
+  )
+  return(subj_mse_df)
+}, est = classical_visit1, tru = classical_visit2, SIMPLIFY = F)
+
+bayes_mse <- mapply(function(est,tru) {
+  subj_sqerr <- mapply(function(e,t){
+    err <- (e - t)^2
+    return(err)
+  }, e = est, t = tru, SIMPLIFY = F)
+  tongue <- mean(c(subj_sqerr[[1]][,1],subj_sqerr[[1]][,1]))
+  cue <- mean(c(subj_sqerr[[1]][,4],subj_sqerr[[1]][,4]))
+  right_foot <- mean(subj_sqerr[[1]][,2])
+  left_foot <- mean(subj_sqerr[[2]][,2])
+  right_hand <- mean(subj_sqerr[[1]][,3])
+  left_hand <- mean(subj_sqerr[[2]][,3])
+  subj_mse_df <- data.frame(
+    cue = cue,
+    right_foot = right_foot,
+    right_hand = right_hand,
+    left_foot = left_foot,
+    left_hand = left_hand,
+    tongue = tongue
+  )
+  return(subj_mse_df)
+}, est = bayes_visit1, tru = classical_visit2, SIMPLIFY = F)
+
+
+library(tidyverse)
+max_vals <- reshape2::melt(bayes_mse) %>%
+  mutate(Model = "Bayesian") %>%
+  full_join(
+    reshape2::melt(classical_mse) %>%
+      mutate(Model = "Classical")
+  ) %>%
+  mutate(variable = sub("_"," ", variable)) %>%
+  group_by(variable) %>%
+  summarize(max_value = max(value))
+
+subj_mse_plot <-
+  reshape2::melt(bayes_mse) %>%
+  mutate(Model = "Bayesian") %>%
+  full_join(
+    reshape2::melt(classical_mse) %>%
+      mutate(Model = "Classical")
+  ) %>%
+  mutate(variable = sub("_"," ", variable)) %>%
+  pivot_wider(names_from = Model, values_from = value) %>%
+  mutate(diff = abs(Bayesian - Classical)) %>%
+  group_by(variable) %>%
+  mutate(diff = diff / max(diff),
+         diff = ifelse(diff > 0.8,0.8,diff)) %>%
+  ggplot() +
+  geom_point(aes(x = max_value, y = max_value), color = "white", data = max_vals) +
+  geom_segment(aes(x = Classical, y = Bayesian, xend = Bayesian, yend = Bayesian, color = diff)) +
+  scale_color_gradientn("",colors = c('yellow','turquiose2','blue2'), limits = c(0,0.8)) +
+  geom_point(aes(y = Bayesian, x = Classical)) +
+  geom_abline(intercept = 0, slope = 1, color = 'grey70') +
+  labs(y = "Bayesian GLM", x = "Classical GLM", title = "Test-Retest Mean Squared Error") +
+  facet_wrap(~variable, scales = "free") +
+  guides(color = F) +
+  theme_classic()
+
+subj_mse_plot
+
+ggsave("plots/607_subject_mse_plot.png", plot = subj_mse_plot, width = 7.5, height = 5)
+
+# FIGURE 24: Single-subject correlation ----
+bayes_result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW"
+classical_result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/classical"
+
+load("HCP_data/subjects.Rdata")
+
+classical_visit2 <- sapply(subjects, function(subject) {
+  classical_file_left <- grep(paste0(subject,"_visit2_left"), list.files(classical_result_dir, full.names = T), value = T)
+  classical_file_right <- grep(paste0(subject,"_visit2_right"), list.files(classical_result_dir, full.names = T), value = T)
+  class_visit2_est <- list(
+    left = readRDS(classical_file_left)$betas_classical$avg$data$cortex_left,
+    right = readRDS(classical_file_right)$betas_classical$avg$data$cortex_right
+  )
+  return(class_visit2_est)
+}, simplify = FALSE)
+
+# bayes_visit1_est <- list()
+# for(subject in subjects) {
+#   result_file_left <- grep(paste0(subject,"_visit1_left"), list.files(bayes_result_dir, full.names = T), value = T)
+#   result_file_right <- grep(paste0(subject,"_visit1_right"), list.files(bayes_result_dir, full.names = T), value = T)
+#   ests <- list(
+#     left = readRDS(result_file_left)$betas_Bayesian$avg$data$cortex_left,
+#     right = readRDS(result_file_right)$betas_Bayesian$avg$data$cortex_right
+#   )
+#   bayes_visit1_est[[subject]] <- ests
+# }
+# saveRDS(bayes_visit1_est, "HCP_results/5k_results/607_bayes_visit1_est.rds")
+bayes_visit1 <- readRDS("HCP_results/5k_results/607_bayes_visit1_est.rds")
+
+classical_visit1 <- sapply(subjects, function(subject) {
+  classical_file_left <- grep(paste0(subject,"_visit1_left"), list.files(classical_result_dir, full.names = T), value = T)
+  classical_file_right <- grep(paste0(subject,"_visit1_right"), list.files(classical_result_dir, full.names = T), value = T)
+  class_visit1_est <- list(
+    left = readRDS(classical_file_left)$betas_classical$avg$data$cortex_left,
+    right = readRDS(classical_file_right)$betas_classical$avg$data$cortex_right
+  )
+  return(class_visit1_est)
+}, simplify = FALSE)
+
+classical_cor <- mapply(function(est,tru) {
+  tongue <- cor(c(est[[1]][,1],est[[2]][,1]),c(tru[[1]][,1],tru[[2]][,1]))
+  cue <- cor(c(est[[1]][,4],est[[2]][,4]),c(tru[[1]][,4],tru[[2]][,4]))
+  right_foot <- cor(est[[1]][,2], tru[[1]][,2])
+  left_foot <- cor(est[[2]][,2], tru[[2]][,2])
+  right_hand <- cor(est[[1]][,3], tru[[1]][,3])
+  left_hand <- cor(est[[2]][,3], tru[[2]][,3])
+  subj_cor_df <- data.frame(
+    cue = cue,
+    right_foot = right_foot,
+    right_hand = right_hand,
+    left_foot = left_foot,
+    left_hand = left_hand,
+    tongue = tongue
+  )
+  return(subj_cor_df)
+}, est = classical_visit1, tru = classical_visit2, SIMPLIFY = F)
+
+bayes_cor <- mapply(function(est,tru) {
+  tongue <- cor(c(est[[1]][,1],est[[2]][,1]),c(tru[[1]][,1],tru[[2]][,1]))
+  cue <- cor(c(est[[1]][,4],est[[2]][,4]),c(tru[[1]][,4],tru[[2]][,4]))
+  right_foot <- cor(est[[1]][,2], tru[[1]][,2])
+  left_foot <- cor(est[[2]][,2], tru[[2]][,2])
+  right_hand <- cor(est[[1]][,3], tru[[1]][,3])
+  left_hand <- cor(est[[2]][,3], tru[[2]][,3])
+  subj_cor_df <- data.frame(
+    cue = cue,
+    right_foot = right_foot,
+    right_hand = right_hand,
+    left_foot = left_foot,
+    left_hand = left_hand,
+    tongue = tongue
+  )
+  return(subj_cor_df)
+}, est = bayes_visit1, tru = classical_visit2, SIMPLIFY = F)
+
+
+library(tidyverse)
+max_cors <- reshape2::melt(bayes_cor) %>%
+  mutate(Model = "Bayesian") %>%
+  full_join(
+    reshape2::melt(classical_cor) %>%
+      mutate(Model = "Classical")
+  ) %>%
+  mutate(variable = sub("_"," ", variable)) %>%
+  group_by(variable) %>%
+  summarize(max_value = max(value))
+
+library(viridis)
+library(ciftiTools)
+
+col_pal <- colorRampPalette(c('red','orange','yellow','green','blue','violet'))
+
+subj_cor_plot <-
+  reshape2::melt(bayes_cor) %>%
+  mutate(Model = "Bayesian") %>%
+  full_join(
+    reshape2::melt(classical_cor) %>%
+      mutate(Model = "Classical")
+  ) %>%
+  mutate(variable = sub("_"," ", variable)) %>%
+  pivot_wider(names_from = Model, values_from = value) %>%
+  mutate(diff = Bayesian - Classical,
+         diff = ifelse(diff < 0, 0, diff),
+         diff = ifelse(diff > 0.1, 0.1, diff)) %>%
+  ggplot() +
+  geom_point(aes(x = max_value, y = max_value), color = "white", data = max_cors) +
+  geom_segment(aes(x = Classical, y = Bayesian, xend = Classical, yend = Classical, color = diff), alpha = 0.8) +
+  scale_color_gradientn("",colors = c('red','orange','yellow','green','cornflowerblue'), limits = c(0,0.1)) +
+  # scale_color_gradientn("",colors = rev(c('red','orange','yellow','green','blue')), limits = c(-.18,.18)) +
+  # scale_color_manual("", values = col_pal) +
+  # scale_color_viridis(option = "C", limits = c(0,.1)) +
+  # scale_color_gradient2("",low = "blue",high = "red", limits = c(-.2,.2)) +
+  geom_point(aes(y = Bayesian, x = Classical)) +
+  geom_abline(intercept = 0, slope = 1, color = 'grey70') +
+  labs(y = "Bayesian GLM", x = "Classical GLM", title = "Test-Retest Correlation") +
+  facet_wrap(~variable, scales = "free") +
+  guides(color = FALSE) +
+  theme_classic()
+
+subj_cor_plot
+
+ggsave("plots/607_subject_cor_plot.png", plot = subj_cor_plot, width = 7.5, height = 5)
+
+# FIGURE 25: Number of active regions by group subsample size ----
+
+# >> Bayesian ----
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/subsamples"
+result_files <- list.files(result_dir, full.names = T)
+result_files <- grep("_visit1_", result_files, value = T)
+result_files <- grep("_single_session", result_files, value = T, invert = T)
+# result_files <- grep("_sample", result_files, value = T)
+
+bayes_num_act <-
+  sapply(as.character(c(10,20,30)), function(ssize) {
+    sapply(as.character(1:10), function(samp_num) {
+      sapply(c('left','right'), function(hem) {
+        sapply(as.character(c(0,0.5,1)), function(thr) {
+          thr_chr <- sub("\\.","",thr)
+          filen <- grep(paste0(ssize,"subj_sample",samp_num,"_"), result_files, value = T)
+          filen <- grep(hem, filen, value = T)
+          filen <- grep(paste0("thresh",thr_chr,"_"), filen, value = T)
+          result_obj <- readRDS(filen)
+          return(as.matrix(apply(result_obj$active,2,sum)))
+        }, simplify = F)
+      }, simplify = F)
+    }, simplify = F)
+  }, simplify = F)
+
+bayes_num_act_45 <-
+  sapply(as.character(45), function(ssize) {
+    sapply(as.character(1), function(samp_num) {
+      sapply(c('left','right'), function(hem) {
+        sapply(as.character(c(0,0.5,1)), function(thr) {
+          thr_chr <- sub("\\.","",thr)
+          filen <- grep(paste0(ssize,"subj_"), result_files, value = T)
+          filen <- grep(hem, filen, value = T)
+          filen <- grep(paste0("thresh",thr_chr,"_"), filen, value = T)
+          result_obj <- readRDS(filen)
+          return(as.matrix(apply(result_obj$active,2,sum)))
+        }, simplify = F)
+      }, simplify = F)
+    }, simplify = F)
+  }, simplify = F)
+
+# >> Classical ----
+result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/classical"
+library(abind)
+result_files <- list.files(result_dir, full.names = T)
+result_files <- grep("_visit1_", result_files, value = T)
+load("HCP_data/subjects.Rdata")
+classical_estimates <- sapply(c('left','right'), function(hem) {
+  sapply(subjects, function(subject) {
+    filen <- grep(paste0(subject, "_visit1_",hem), result_files, value = T)
+    result_obj <- readRDS(filen)
+    out <-
+      abind(result_obj$betas_classical$LR$data[[paste0("cortex_", hem)]],
+            result_obj$betas_classical$RL$data[[paste0("cortex_", hem)]],
+            along = 3)
+    return(out)
+  }, simplify = "array")
+}, simplify = F)
+
+subsample_subjects <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/subsamples/501_sample_subjects_20210319.rds")
+load("HCP_data/subjects.Rdata")
+subsample_idx <- sapply(subsample_subjects, function(sam){
+  out <- apply(sam,1:2, function(x) which(subjects == x))
+  return(out)
+}, simplify = F)
+class_num_act <- sapply(subsample_idx, function(ssize) {
+  sample_num_active <- sapply(1:10,function(samp) {
+    sapply(c('left','right'), function(hem) {
+      samp_est <- classical_estimates[[hem]][,,,ssize[,samp]]
+      num_locs <- dim(samp_est)[1]
+      bonferroni_cutoff <- 0.01 / num_locs # alpha = 0.01
+      data_df <- reshape2::melt(samp_est)
+      vertex_lists <- split(data_df,data_df$Var1)
+      thresh_active <- sapply(c(0,0.5,1), function(thr) {
+        active_all <- sapply(vertex_lists, function(v_df){
+          vt_df <- split(v_df, v_df$Var2)
+          active_vertex <- sapply(vt_df, function(vt) {
+            ttest_res <- t.test(x = vt$value, mu = thr, alternative = "greater")
+            active_v <- ifelse(ttest_res$p.value < bonferroni_cutoff, 1, 0)
+            return(active_v)
+          }, simplify = "array")
+          return(active_vertex)
+        }, simplify = 'array')
+        out <- apply(active_all,1,sum)
+        return(as.matrix(out))
+      }, simplify = F)
+      names(thresh_active) <- paste0(threshs,"%")
+      return(thresh_active)
+    }, simplify = F)
+  }, simplify = F)
+  names(sample_num_active) <- as.character(1:10)
+  return(sample_num_active)
+}, simplify = F)
+names(class_num_act) <- c("10","20","30")
+
+class_num_act_45 <- sapply("45", function(ssize) {
+  sample_num_active <- sapply(1,function(samp) {
+    sapply(c('left','right'), function(hem) {
+      samp_est <- classical_estimates[[hem]]
+      num_locs <- dim(samp_est)[1]
+      bonferroni_cutoff <- 0.01 / num_locs # alpha = 0.01
+      data_df <- reshape2::melt(samp_est)
+      vertex_lists <- split(data_df,data_df$Var1)
+      thresh_active <- sapply(c(0,0.5,1), function(thr) {
+        active_all <- sapply(vertex_lists, function(v_df){
+          vt_df <- split(v_df, v_df$Var2)
+          active_vertex <- sapply(vt_df, function(vt) {
+            ttest_res <- t.test(x = vt$value, mu = thr, alternative = "greater")
+            active_v <- ifelse(ttest_res$p.value < bonferroni_cutoff, 1, 0)
+            return(active_v)
+          }, simplify = "array")
+          return(active_vertex)
+        }, simplify = 'array')
+        out <- apply(active_all,1,sum)
+        return(as.matrix(out))
+      }, simplify = F)
+      names(thresh_active) <- paste0(threshs,"%")
+      return(thresh_active)
+    }, simplify = F)
+  }, simplify = F)
+  names(sample_num_active) <- "1"
+  return(sample_num_active)
+}, simplify = F)
+
+classical_num_act <- reshape2::melt(class_num_act) %>%
+  full_join(reshape2::melt(class_num_act_45)) %>%
+  mutate(L4 = sub("%","", L4),
+         model = "classical")
+
+# >> Plot ----
+col_pal <- scales::hue_pal()(5)
+library(viridis)
+col_pal <- viridis(7,option = "C")[1:5]
+col_pal <- rgb(c(230, 86, 0, 0,204),c(159,180,158,114,121),c(0,233,115,178,167), maxColorValue = 255)
+library(tidyverse)
+task_names <- c("cue","foot","hand","tongue")
+num_act_plots <- sapply(c(0,0.5), function(thr) {
+  # sapply(c("One Hemisphere","Two Hemispheres"), function(hemi) {
+  #   if(hemi == "One Hemisphere") {
+  #     my_colors <- col_pal[1:4]
+  #   } else {
+  #     my_colors <- col_pal[5]
+  #   }
+  # sapply(c("Bayesian","classical"), function(mdl) {
+    num_act_df <-
+      reshape2::melt(bayes_num_act) %>%
+      full_join(reshape2::melt(bayes_num_act_45)) %>%
+      mutate(model = "Bayesian") %>%
+      full_join(classical_num_act) %>%
+      filter(L4 == as.character(thr)) %>%
+      mutate(task = task_names[Var1],
+             not_hem = ifelse(L3 == 'left', 'right','left'),
+             task = paste(not_hem,task)) %>%
+      select(-Var1,-Var2,-L3, -not_hem) %>%
+      pivot_wider(names_from = task, values_from = value) %>%
+      mutate(cue = `left cue` + `right cue`,
+             tongue = `left tongue` + `right tongue`) %>%
+      select(-ends_with(" cue"), -ends_with(" tongue")) %>%
+      mutate(threshold = as.numeric(L4),
+             num_subjects = as.numeric(L1)) %>%
+      select(-L1,-L2,-L4) %>%
+      pivot_longer(cols = -c(threshold,num_subjects,model), names_to = "task", values_to = "num_active") %>%
+      mutate(both_hems = ifelse(task %in% c("cue","tongue"),"Two Hemispheres","One Hemisphere")) %>%
+      filter(#both_hems == hemi,
+             task != "cue",
+             # model == mdl
+             )
+    sub_df <- filter(num_act_df, num_subjects < 45)
+    means_df <- group_by(num_act_df,num_subjects, task, threshold, model) %>%
+      summarize(num_active = mean(num_active))
+    num_act_plot <- ggplot(sub_df, aes(x = num_subjects, y = num_active, color = task)) +
+      geom_jitter(width = 1, height = 0, alpha = 0.3) +
+      geom_line(data = means_df,lwd = 1.6) +
+      geom_point(data = filter(means_df,num_subjects == 45), size = 4) +
+      # facet_grid(threshold~model, scales = "free", labeller = label_bquote(rows = gamma == .(threshold) ~'%')) +
+      facet_wrap(~model, scales = "free") +
+      # labs(x = "Number of Subjects", y = "Number of Active Locations", title = expression(paste0("Activation Threshold (",gamma,"=",thr,"%)"))) +
+      labs(x = "Number of Subjects", y = "Number of Active Locations") +
+      scale_color_manual("", values = col_pal) +
+      # geom_hline(yintercept = 0) +
+      theme_classic() +
+      theme(legend.position = "right")
+    # num_act_plot
+    return(num_act_plot)
+  # },simplify = F)
+}, simplify = F)
+
+num_act_plots[[2]]
+num_act_plots[[1]]
+
+library(ggpubr)
+ggarrange(plotlist = num_act_plots, ncol = 2,nrow = 1)
+ggarrange(plotlist = num_act_plots[[2]], ncol = 2,nrow = 1)
+ggarrange(plotlist = num_act_plots[[1]], ncol = 2,nrow = 1)
+
+ggsave("plots/607_num_act_plots_thr0.png", plot = num_act_plots[[1]], width = 7, height = 6)
+ggsave("plots/607_num_act_plots_thr0.5.png", plot = num_act_plots[[2]], width = 7, height = 6)
+
+# FIGURE 26: Graphical Abstract ----
+# >> Prior Precision ----
+tau2 <- 2
+kappa2 <- 2
+C <- diag(11)
+G <- matrix(
+  c(
+    1,1,0,1,0,0,0,0,0,0,0,
+    1,1,1,1,1,0,0,0,0,0,0,
+    0,1,1,0,1,1,0,0,0,0,0,
+    1,1,0,1,1,0,1,0,0,0,0,
+    0,1,1,1,1,1,1,1,0,0,0,
+    0,0,1,0,1,1,0,1,1,0,0,
+    0,0,0,1,1,0,1,1,0,1,0,
+    0,0,0,0,1,1,1,1,1,1,0,
+    0,0,0,0,0,1,0,1,1,1,1,
+    0,0,0,0,0,0,0,1,1,1,1,
+    0,0,0,0,0,0,0,0,1,1,1
+  ),
+  nrow = 11,
+  ncol = 11,
+  byrow = T
+)
+reshape2::melt(G) %>%
+  ggplot() +
+  geom_raster(aes(x = Var1, y = Var2, fill = value)) +
+  scale_fill_gradient2(low = "blue",high = "black") +
+  guides(fill = F) +
+  theme_void()
+
+Q <- tau2*(kappa2^2*C + 2*kappa2*G + G%*%solve(C)%*%G)
+Q_inv <- solve(Q)
+reshape2::melt(Q) %>%
+  ggplot() +
+  geom_raster(aes(x = Var1, y = Var2, fill = value)) +
+  scale_fill_gradient2(low = "blue",high = "red") +
+  guides(fill = F) +
+  theme_void()
+

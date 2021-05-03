@@ -69,7 +69,7 @@ result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/indi
 result_files <- list.files(result_dir,full.names = TRUE)
 result_files <- grep(".rds", result_files, value = T)
 avg_estimates_classical <- sapply(c('left','right'), function(hem) {
-  out_list_l1 <- sapply(c('visit1','visit2'), function(visit) {
+  out_list_l1 <- sapply(c('visit1'), function(visit) {
     file_locs <- grep(hem, grep(visit, result_files,value = TRUE), value = TRUE)
     session_estimates <-
       sapply(file_locs,
@@ -82,7 +82,8 @@ avg_estimates_classical <- sapply(c('left','right'), function(hem) {
   }, simplify = F)
   return(out_list_l1)
 }, simplify = F)
-saveRDS(avg_estimates_classical, "HCP_results/5k_results/602_average_estimates_classical.rds")
+# saveRDS(avg_estimates_classical, "HCP_results/5k_results/602_average_estimates_classical.rds")
+saveRDS(avg_estimates_classical, "HCP_results/5k_results/602_average_estimates_visit1_classical.rds")
 
 # ICC function definition ----
 #' Intraclass Correlation
