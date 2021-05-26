@@ -23,7 +23,7 @@ cols_RH <- c(1:3,6) #cue, left foot, left hand, tongue
 cols_list <- list(cols_LH, cols_RH)
 TR = 0.72 #temporal resolution of data
 thetas <- NULL # No starting values for precision parameters
-subjects <- subjects[1]
+subjects <- subjects[c(1,2,4)]
 for(subject in subjects) {
   dir_s <- file.path(data_dir, subject, 'MNINonLinear', 'fsaverage_LR32k')
   fname_gifti_left <- file.path(dir_s, paste0(subject,'.L.midthickness.32k_fs_LR.surf.gii'))
@@ -85,12 +85,12 @@ for(subject in subjects) {
                                  nuisance_include = c('drift','dHRF'),
 			                           scale_BOLD = TRUE,
 			                           scale_design = TRUE,
-                                 GLM_method = 'both',
+                                 GLM_method = 'classical',
 			                           ar_order = 6,
 			                           ar_smooth = 6,
                                  session_names = c('LR','RL'), # Multiple sessions
 			                           # session_names = c('LR'), # single session
-                                 resamp_res = 5000, # Don't forget to change this
+                                 resamp_res = 15000, # Don't forget to change this
                                  num.threads = 6, # Remember the tradeoff here (speed/memory) 4 to 6 threads seems optimal based on testing
                                  verbose = TRUE,
                                  outfile = NULL,
@@ -99,7 +99,7 @@ for(subject in subjects) {
 			                           trim_INLA = T)
     total_time <- proc.time()[3] - start_time
     result_svh$total_time <- total_time
-    saveRDS(result_svh, file=file.path(result_dir,paste0("500_",subject,"_visit",visit,"_",hem,"_1k_",format(Sys.Date(),"%Y%m%d"),".rds")))
+    saveRDS(result_svh, file=file.path(result_dir,paste0("500_",subject,"_visit",visit,"_",hem,"_15k_classical_",format(Sys.Date(),"%Y%m%d"),".rds")))
     }
   }
 }
