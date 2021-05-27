@@ -3966,7 +3966,7 @@ col_pal <- viridis(7,option = "C")[1:5]
 col_pal <- rgb(c(230, 86, 0, 0,204),c(159,180,158,114,121),c(0,233,115,178,167), maxColorValue = 255)
 library(tidyverse)
 task_names <- c("cue","foot","hand","tongue")
-num_act_plots <- sapply(c(0,0.5), function(thr) {
+num_act_plots <- sapply(c(0,0.5,1), function(thr) {
   single_num_act_df <-
     reshape2::melt(single_num_act, value.name = "number_active") %>%
     mutate(threshold = c(0,0.5,1)[L4],
@@ -4032,8 +4032,9 @@ num_act_plots <- sapply(c(0,0.5), function(thr) {
   # },simplify = F)
 }, simplify = F)
 
-num_act_plots[[2]]
-num_act_plots[[1]]
+num_act_plots[[3]] # 1% threshold
+num_act_plots[[2]] # 0.5% threshold
+num_act_plots[[1]] # 0% threshold
 
 ggsave("plots/607_num_act_plots_thr0.png", plot = num_act_plots[[1]], width = 7, height = 6)
 ggsave("plots/607_num_act_plots_thr0.5.png", plot = num_act_plots[[2]], width = 7, height = 6)
