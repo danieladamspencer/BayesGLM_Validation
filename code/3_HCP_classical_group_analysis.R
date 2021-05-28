@@ -108,14 +108,6 @@ combined_active_FWER_visit1 <-
 
 saveRDS(combined_active_FWER_visit1, "HCP_results/5k_results/group/502_HCP_classical_activations_PW_visit1_FWER.rds")
 # FDR ----
-# BH_FDR <- function(p, FDR = 0.05) {
-#   p_rank <- rank(-p, na.last=T)
-#   BH_cutoff <- FDR * p_rank / length(p_rank)
-#   out <- ifelse(is.na(p), 1, p)
-#   out <- ifelse(out < BH_cutoff, 1,0)
-#   return(out)
-# }
-
 threshs <- c(0)
 combined_active_FDR <- sapply(classical_estimates, function(hem_res) {
   data_df <- reshape2::melt(hem_res)

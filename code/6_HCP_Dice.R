@@ -37,15 +37,15 @@ for(thr in threshold) {
       visit_exc[[v]] <- Reduce(rbind,hems_exc)
     }
     subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2) / mean(c(sum(v1),sum(v2))) },
-           v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
-           v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
+                                    v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
+                                    v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
     # subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2)},
     #                                 v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
     #                                 v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
   }
   all_dice <- Reduce(rbind, subjects_dice)
-  # saveRDS(all_dice, paste0("HCP_results/5k_results/605_overlap_size_PW_threshold",thr,".rds"))
-  saveRDS(all_dice, paste0("HCP_results/5k_results/605_Dice_coefficient_PW_threshold",thr,".rds"))
+  # saveRDS(all_dice, paste0("HCP_results/5k_results/6_overlap_size_PW_threshold",thr,".rds"))
+  saveRDS(all_dice, paste0("HCP_results/5k_results/6_Dice_coefficient_PW_threshold",thr,".rds"))
 }
 
 
@@ -90,8 +90,8 @@ for(thr in threshold) {
 #                                   v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
 # }
 # all_dice <- Reduce(rbind, subjects_dice)
-# # saveRDS(all_dice, paste0("HCP_results/5k_results/605_classical_FWER_Dice_coefficient_PW_threshold",threshold,".rds"))
-# saveRDS(all_dice, paste0("HCP_results/5k_results/605_classical_FWER_overlap_size_PW_threshold",threshold,".rds"))
+# # saveRDS(all_dice, paste0("HCP_results/5k_results/6_classical_FWER_Dice_coefficient_PW_threshold",threshold,".rds"))
+# saveRDS(all_dice, paste0("HCP_results/5k_results/6_classical_FWER_overlap_size_PW_threshold",threshold,".rds"))
 #
 # # # Plot the Dice Coefficients ----
 # dice_result_files <- list.files("HCP_results/5k_results", full.names = T)
@@ -352,12 +352,12 @@ all_activations <-
     return(subject_activations)
   }, result_files = result_files, simplify = FALSE)
 
-  # })
+# })
 
-saveRDS(all_activations, "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/605_all_activations.rds")
-# saveRDS(all_activations, file = "~/Desktop/605_all_activations.rds")
+saveRDS(all_activations, "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/6_all_activations.rds")
+# saveRDS(all_activations, file = "~/Desktop/6_all_activations.rds")
 
-all_activations <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/605_all_activations.rds")
+all_activations <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session/6_all_activations.rds")
 library(tidyverse)
 overlap_df <-
   reshape2::melt(all_activations, value.name = "active") %>%
@@ -379,7 +379,7 @@ overlap_df <-
 
 
 # cue_tongue_df <-
-  filter(overlap_df, Var2 %in% c("cue","tongue")) %>%
+filter(overlap_df, Var2 %in% c("cue","tongue")) %>%
   mutate(Var2 = droplevels(Var2)) %>%
   pivot_wider(names_from = Var2, values_from = c(overlap,area)) %>%
   group_by(subject, session, threshold, Model) %>%
@@ -387,4 +387,4 @@ overlap_df <-
             overlap_tongue = sum(overlap_tongue),
             area_cue = sum(area_cue),
             area_tongue = sum(area_tongue)) #%>%
-  pivot_longer(cols = c(starts_with("overlap"), starts_with("area")),names_sep = "_", names_to = c("overlap","area"))
+pivot_longer(cols = c(starts_with("overlap"), starts_with("area")),names_sep = "_", names_to = c("overlap","area"))

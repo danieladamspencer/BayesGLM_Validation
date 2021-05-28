@@ -1,20 +1,14 @@
 # This is a script for running the HCP data analysis
 library(ciftiTools)
-# wb_cmd <- "/Applications/workbench" # Mac Pro
-# ciftiTools::ciftiTools.setOption("wb_path", wb_cmd) # Mac Pro
 ciftiTools::ciftiTools.setOption("wb_path", "/Applications/workbench/bin_macosx64/wb_command") # Dan's Macbook Pro
 wb_cmd <- "/Applications/workbench/bin_macosx64/wb_command" # Dan's Macbook Pro
 library(INLA)
 inla.setOption(pardiso.license = "~/licenses/pardiso.lic") # Dan's Macbook Pro
 library(BayesfMRI)
 main_dir <- "~/github/BayesGLM_Validation" # Dan's Macbook Pro
-# main_dir <- "/Volumes/Macintosh HD/Users/Shared/HCP" # Mac Pro
 data_dir <- "~/github/BayesGLM_Validation/HCP_data" # Dan's Macbook Pro
-# data_dir <- "/Volumes/Macintosh HD/Users/Shared/HCP/visit1_data/" # Mac Pro
 result_dir <- "~/github/BayesGLM_Validation/HCP_results/1k_results/PW" # Dan's Macbook Pro
-# result_dir <- "/Volumes/Macintosh HD/Users/Shared/HCP/5k_results/PW" # Mac Pro
 load(file.path(data_dir,"subjects.Rdata")) # Macbook Pro
-# load(file.path(main_dir,"subjects.Rdata")) # Mac Pro
 tasks <- c('cue','lf','lh','rf','rh','t') # Task data frame columns
 names_tasks <- c('cue','left_foot','left_hand','right_foot','right_hand','tongue')
 colors_tasks <- c('black',RColorBrewer::brewer.pal(5, 'Set2'))
@@ -28,7 +22,7 @@ for(subject in subjects) {
   dir_s <- file.path(data_dir, subject, 'MNINonLinear', 'fsaverage_LR32k')
   fname_gifti_left <- file.path(dir_s, paste0(subject,'.L.midthickness.32k_fs_LR.surf.gii'))
   fname_gifti_right <- file.path(dir_s, paste0(subject,'.R.midthickness.32k_fs_LR.surf.gii'))
-  for(visit in c(1)) {
+  for(visit in 1:2) {
     if(visit == 1) {
       dir1_s <- file.path(data_dir,subject, 'MNINonLinear', 'Results', 'tfMRI_MOTOR_LR')
       dir2_s <- file.path(data_dir,subject, 'MNINonLinear', 'Results', 'tfMRI_MOTOR_RL')
@@ -36,9 +30,7 @@ for(subject in subjects) {
       fname2_ts <- file.path(dir2_s,'tfMRI_MOTOR_RL_Atlas.dtseries.nii')
     }
     if(visit == 2) {
-      # dir1_s <- file.path(data_dir,"retest",subject, 'MNINonLinear', 'Results', 'tfMRI_MOTOR_LR')
       dir1_s <- file.path(main_dir,"visit2_data",subject, 'MNINonLinear', 'Results', 'tfMRI_MOTOR_LR')
-      # dir2_s <- file.path(data_dir,"retest",subject, 'MNINonLinear', 'Results', 'tfMRI_MOTOR_RL')
       dir2_s <- file.path(main_dir,"visit2_data",subject, 'MNINonLinear', 'Results', 'tfMRI_MOTOR_RL')
       fname1_ts <- file.path(dir1_s,'tfMRI_MOTOR_LR_Atlas.dtseries.nii')
       fname2_ts <- file.path(dir2_s,'tfMRI_MOTOR_RL_Atlas.dtseries.nii')
