@@ -13,6 +13,9 @@
 HCP_data/
 HCP_results/
 
+# Manuscript folder
+Bayesian_GLM_Validation_Study_NeuroImage/
+
 # User-specific files
 .Ruserdata
 
