@@ -545,7 +545,7 @@ subj_mse_plot <-
   group_by(variable) %>%
   mutate(diff = diff / max(diff),
          diff = ifelse(diff > 0.8,0.8,diff)) %>%
-  # filter(variable == "tongue") %>%
+  filter(variable == "tongue") %>%
   ggplot() +
   geom_point(aes(x = max_value, y = max_value), color = "white", data = max_vals) +
   geom_segment(aes(x = Classical, y = Bayesian, xend = Classical, yend = Classical, color = diff)) +
@@ -559,19 +559,20 @@ subj_mse_plot <-
   geom_abline(intercept = 0, slope = 1, color = 'grey70') +
   labs(
     y = "Bayesian GLM",
-    x = "Classical GLM"
+    x = "Classical GLM",
+    title = "Test-Retest MSE"
   ) +
-  facet_wrap(~variable, scales = "free") +
+  # facet_wrap(~variable, scales = "free") +
   guides(color = F) +
   theme_classic() +
-  theme(text=element_text(size = 14))
-  # theme(plot.title = element_text(hjust = 0.5,size = 7),
-  #       axis.title = element_text(size = 9))
+  # theme(text=element_text(size = 14)) +
+  theme(plot.title = element_text(hjust = 0.5,size = 14),
+        axis.title = element_text(size = 14))
 
 subj_mse_plot
 
-ggsave("plots/5_subject_mse_plot.png", plot = subj_mse_plot, width = 7.5, height = 5)
-# ggsave("~/Desktop/SMI 2021 poster images/5_subject_mse_plot.png", plot = subj_mse_plot, width = 2.5, height = 3)
+# ggsave("plots/5_subject_mse_plot.png", plot = subj_mse_plot, width = 7.5, height = 5)
+ggsave("~/Desktop/SMI 2021 poster images/5_subject_mse_plot.png", plot = subj_mse_plot, width = 3.5, height = 4)
 
 # >> Correlation ----
 bayes_result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW"
@@ -677,6 +678,7 @@ subj_cor_plot <-
   mutate(diff = Bayesian - Classical,
          diff = ifelse(diff < 0, 0, diff),
          diff = ifelse(diff > 0.1, 0.1, diff)) %>%
+  filter(variable == "tongue") %>%
   ggplot() +
   geom_point(aes(x = max_value, y = max_value), color = "white", data = max_cors) +
   geom_segment(aes(x = Classical, y = Bayesian, xend = Classical, yend = Classical, color = diff), alpha = 0.8) +
@@ -694,15 +696,19 @@ subj_cor_plot <-
   # scale_color_gradient2("",low = "blue",high = "red", limits = c(-.2,.2)) +
   geom_point(aes(y = Bayesian, x = Classical)) +
   geom_abline(intercept = 0, slope = 1, color = 'grey70') +
-  labs(y = "Bayesian GLM", x = "Classical GLM") +
-  facet_wrap(~variable, scales = "free") +
+  labs(y = "Bayesian GLM", x = "Classical GLM", title = "Test-Retest Correlation") +
+  # facet_wrap(~variable, scales = "free") +
   guides(color = FALSE) +
   theme_classic() +
-  theme(text = element_text(size = 14))
+  theme(plot.title = element_text(hjust = 0.5,size = 12),
+        axis.title = element_text(size = 10))
+  # theme(text = element_text(size = 14),
+  #       plot.title = element_text(hjust = 0.5))
 
 subj_cor_plot
 
-ggsave("plots/5_subject_cor_plot.png", plot = subj_cor_plot, width = 7.5, height = 5)
+# ggsave("plots/5_subject_cor_plot.png", plot = subj_cor_plot, width = 7.5, height = 5)
+ggsave("~/Desktop/SMI 2021 poster images/5_subject_cor_plot.png", plot = subj_cor_plot, width = 3.5, height = 4)
 
 # FIGURE 5: Multi-run subject activations ----
 library(ciftiTools)
@@ -1127,6 +1133,12 @@ area_results <- sapply(area_files, function(df) sapply(df,readRDS, simplify = F)
 names(area_results$Bayesian) <- c("0%","0.5%","1%")
 names(area_results$Classical) <- c("0%","0.5%","1%")
 
+# Used for the OHBM 2021 poster
+color_pal <- c(
+  rgb(39,86,197, maxColorValue = 255),
+  rgb(169,99,36, maxColorValue = 255)
+)
+
 count <- 0
 breaks_fun <- function(x) {
   count <<- count %% 3 + 1L
@@ -1138,23 +1150,45 @@ breaks_fun <- function(x) {
   )
 }
 
-area_by_dice <- reshape2::melt(dice_results, value.name = "dice") %>%
+# This is just for the tongue task
+count <- 0
+breaks_fun <- function(x) {
+  count <<- count %% 3 + 1L
+  switch(
+    count,
+    c(0, 350, 700),
+    c(0, 50, 100),
+    c(0, 100, 200)
+  )
+}
+# End
+
+area_by_dice <-
+  reshape2::melt(dice_results, value.name = "dice") %>%
   cbind(overlap = reshape2::melt(area_results, value.name = "overlap")$overlap) %>%
   mutate(Var2 = task_names[Var2],
          Var2 = as.factor(Var2),
+         label_gamma = as.numeric(sub("%","",L2)),
          L2 = factor(L2, levels = c("0%","0.5%","1%"))) %>%
+  filter(Var2 == "tongue") %>%
   ggplot() +
   geom_point(aes(x = overlap, y = dice, color = L1)) +
-  facet_grid(Var2 ~ L2, scales = "free_x") +
-  scale_color_discrete("") +
+  # facet_grid(Var2 ~ L2, scales = "free_x") +
+  facet_grid(. ~ label_gamma, scales = "free_x", labeller = label_bquote(cols = gamma == .(label_gamma)~"%")) +
+  # scale_color_discrete("") +
+  scale_color_manual("", values = color_pal) +
   scale_x_continuous(breaks = breaks_fun, limits = c(0,NA))+
   labs(y = "Dice Coefficient", x = "Size of Overlap (# of vertices)") +
+  # guides(color=FALSE) +
   theme_bw() +
-  theme(legend.position = "top", panel.grid = element_blank())
+  theme(legend.position = "top", panel.grid = element_blank(),
+        legend.text = element_text(size = 12),
+        legend.margin = margin(-10,0,-5,0))
 
 area_by_dice
 
-ggsave("plots/5_area_by_dice.png", width = 4.5, height = 7, plot = area_by_dice)
+# ggsave("plots/5_area_by_dice.png", width = 4.5, height = 7, plot = area_by_dice)
+ggsave("~/Desktop/SMI 2021 poster images/5_area_by_dice.png", width = 6, height = 2.5, plot = area_by_dice)
 
 # FIGURE 8: Group Estimates and Activations ----
 # >> Estimates ----
@@ -1379,7 +1413,8 @@ mse_classical_df <-
   pivot_longer(cols = everything() ,names_to = "task", values_to = "MSE") %>%
   mutate(task = sub("_"," ", task),
          model = "Classical",
-         num_subjects = "45")
+         num_subjects = "45") %>%
+  filter(task == "tongue")
 
 mse_bayes_df <-
   reshape2::melt(mse_bayes) %>%
@@ -1390,7 +1425,9 @@ mse_bayes_df <-
   pivot_longer(cols = everything() ,names_to = "task", values_to = "MSE") %>%
   mutate(task = sub("_"," ", task),
          model = "Bayes",
-         num_subjects = "45")
+         num_subjects = "45") %>%
+  filter(task == "tongue")
+
 classical_mse_subsample_df <- reshape2::melt(mse_classical_subsample) %>%
   mutate(num_subjects = sub("subjects","", L1),
          sample_num = sub("sample","",L2)) %>%
@@ -1419,9 +1456,18 @@ median_mse_df <- full_join(classical_mse_subsample_df,bayes_mse_subsample_df) %>
   group_by(model,task,num_subjects) %>%
   summarize(MSE = median(MSE)) %>%
   full_join(mse_bayes_df) %>%
-  full_join(mse_classical_df)
+  full_join(mse_classical_df) %>%
+  filter(task == "tongue")
 
-mse_plot <- full_join(classical_mse_subsample_df,bayes_mse_subsample_df) %>%
+# Used for the OHBM 2021 poster
+color_pal <- c(
+  rgb(39,86,197, maxColorValue = 255),
+  rgb(169,99,36, maxColorValue = 255)
+)
+
+mse_plot <-
+  full_join(classical_mse_subsample_df,bayes_mse_subsample_df) %>%
+  filter(task == "tongue") %>%
   ggplot() +
   # geom_boxplot(aes(x = task, y = MSE, fill = num_subjects, color = num_subjects)) +
   geom_jitter(aes(x = num_subjects, y = MSE, color = model), width = 0.1, height = 0, alpha = 0.3) +
@@ -1430,36 +1476,18 @@ mse_plot <- full_join(classical_mse_subsample_df,bayes_mse_subsample_df) %>%
   geom_line(aes(x = as.numeric(factor(num_subjects)), y = MSE, color = model), data = median_mse_df) +
   geom_hline(aes(yintercept = 0), lty = 2) +
   # geom_segment(aes(x = as.numeric(factor(num_subjects))-0.3,xend = as.numeric(factor(num_subjects))+0.3, y = MSE,yend = MSE, color = model), data = median_mse_df) +
-  labs(x = "Subsample Size") +
-  scale_color_discrete("") +
-  # scale_fill_manual(name = "Subsample Size", values = my_pal) +
-  # scale_color_manual(name = "Subsample Size", values = my_pal) +
-  facet_wrap(~task, scales = "free_y") +
+  labs(x = "Subsample Size", y = "Test-Retest MSE") +
+  scale_color_manual("",values = color_pal, labels = c("Bayesian","Classical")) +
+  # facet_wrap(~task, scales = "free_y") +
   theme_classic() +
+  # guides(color = FALSE) +
   theme(legend.position = "top",
+        legend.margin = margin(0,0,-5,-35),
         text = element_text(size = 14))
 
-# mse_plot <-
-#   reshape2::melt(mse_bayes) %>%
-#   mutate(model = "Bayes") %>%
-#   full_join(
-#     reshape2::melt(mse_classical) %>%
-#       mutate(model = "Classical")
-#   ) %>%
-#   pivot_wider(names_from = c(Var2,Var1), values_from = value) %>%
-#   mutate(tongue = (left_tongue + right_tongue)/2,
-#          cue = (left_cue + right_cue)/2) %>%
-#   select(-ends_with("_cue"), -ends_with("_tongue")) %>%
-#   pivot_longer(-model,names_to = "task", values_to = "MSE") %>%
-#   mutate(task = sub("_"," ", task)) %>%
-#   ggplot() +
-#   geom_point(aes(x = task, y = MSE, color = model)) +
-#   labs(x = "Task", y = "Mean Square Error") +
-#   scale_color_discrete("") +
-#   theme_classic()
-
 mse_plot
-ggsave("plots/5_group_mse.png",plot = mse_plot, width = 6, height = 4.5)
+# ggsave("plots/5_group_mse.png",plot = mse_plot, width = 6, height = 4.5)
+ggsave("~/Desktop/SMI 2021 poster images/5_group_mse.png",plot = mse_plot, width = 2.5, height = 3.5)
 
 # >> Correlation ----
 library(tidyverse)
