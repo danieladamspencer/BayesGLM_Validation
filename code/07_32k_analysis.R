@@ -107,6 +107,7 @@ for(subject in subjects) {
         # Set up cifti
         run_cifti_fname <- list.files(run_dir, full.names = T)
         run_cifti_fname <- grep(".dtseries.nii", run_cifti_fname, value = T)
+        run_cifti_fname <- grep("smoothed.dtseries.nii", run_cifti_fname, value = T, invert = T)
         # Set up win - loss EV
         ev_files <- list.files(file.path(run_dir,"EVs"), full.names = TRUE)
         ev_files <- grep("_event.txt",ev_files, value = T)
