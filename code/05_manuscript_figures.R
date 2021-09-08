@@ -2074,6 +2074,55 @@ ggsave("plots/5_num_activations_plot.png", width = 10, height = 7)
 
 # <<<< NOT USED IN MANUSCRIPT >>>>----
 
+# FIGURE: Permutation activations ----
+library(ciftiTools)
+ciftiTools.setOption('wb_path','/Applications/workbench')
+light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
+col_pal <- c(light_orange,"red","purple")
+result <- readRDS("~/Desktop/500_103818_visit1_left_5k_classical_permutations_20210907.rds")
+library(BayesfMRI)
+active_perm <- sapply(c(0,0.5,1), function(thr) {
+  id_out <- id_activations_cifti(result,alpha = 0.01,method = 'classical',threshold = thr,correction = 'permutation')
+  return(id_out$activations_xifti)
+},simplify = F)
+
+active_perm <- Reduce(`+`,active_perm)
+active_perm$data$cortex_left[active_perm$data$cortex_left == 0] <- NA
+plot(active_perm, idx = 4, colors = col_pal, color_mode = "qualitative",
+     surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+     surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii", hemisphere = 'left', view = 'lateral',
+     fname = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_classical_activations_permutation.png")
+
+active_FWER <- sapply(c(0,0.5,1), function(thr) {
+  id_out <- id_activations_cifti(result,alpha = 0.01,method = 'classical',threshold = thr,correction = 'FWER')
+  return(id_out$activations_xifti)
+},simplify = F)
+active_FWER <- Reduce(`+`,active_FWER)
+active_FWER$data$cortex_left[active_FWER$data$cortex_left == 0] <- NA
+plot(active_FWER, idx = 4, colors = col_pal, color_mode = "qualitative",
+     surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+     surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii", hemisphere = 'left', view = 'lateral', fname = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_classical_activations_FWER.png")
+
+active_FDR <- sapply(c(0,0.5,1), function(thr) {
+  id_out <- id_activations_cifti(result,alpha = 0.01,method = 'classical',threshold = thr,correction = 'FDR')
+  return(id_out$activations_xifti)
+},simplify = F)
+active_FDR <- Reduce(`+`,active_FDR)
+active_FDR$data$cortex_left[active_FDR$data$cortex_left == 0] <- NA
+plot(active_FDR, idx = 4, colors = col_pal, color_mode = "qualitative",
+     surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+     surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii", hemisphere = 'left', view = 'lateral', fname = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_classical_activations_FDR.png")
+
+active_bayes <- list.files("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/individual/PW/activations", full.names = T) |>
+  grep(pattern = "visit1_subject_103818_left", value = T) |>
+  grep(pattern = "_classical", value = T, invert = T) |>
+  sapply(FUN = function(x) {y <- readRDS(x); return(y$activations_xifti)},simplify = F) |>
+  Reduce(f = `+`)
+active_bayes$data$cortex_left[active_bayes$data$cortex_left == 0] <- NA
+plot(active_bayes, idx = 4, colors = col_pal, color_mode = "qualitative",
+     surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+     surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii", hemisphere = 'left', view = 'lateral', fname = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_bayes_activations.png")
+
 # FIGURE: Full-res classical ----
 library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
