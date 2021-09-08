@@ -122,7 +122,7 @@ for(subject in subjects) {
           read.table(file.path(run_dir, "Movement_Regressors.txt"), header = F)
         # Smooth data, if desired
         if(do_smooth) {
-          smoothed_fname <- file.path(run_dir, paste0("tfMRI_GAMPLING_",run,"_Atlas_smoothed.dtseries.nii"))
+          smoothed_fname <- file.path(run_dir, paste0("tfMRI_GAMBLING_",run,"_Atlas_smoothed.dtseries.nii"))
           smooth_cifti(
             x = run_cifti_fname,
             cifti_target_fname = smoothed_fname,
