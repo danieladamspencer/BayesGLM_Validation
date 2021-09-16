@@ -18,11 +18,13 @@ library(BayesfMRI)
 result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session"
 result_files <- list.files(result_dir, full.names = T)
 result_files <- grep(".rds", result_files, value= T)
-load("HCP_data/subjects.Rdata")
+load("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_data/subjects.Rdata")
+# load("HCP_data/subjects.Rdata")
 subjects <- subjects[1]
 sessions <- c("LR")
 task_idx <- 3
 task_names <- c("visual_cue","foot","hand","tongue")
+# subject <- subjects[1]; v <- 1; sess <- sessions[1]; h <- 'left'
 for(subject in subjects) {
   for(v in 1) {
     for(sess in sessions) {
@@ -1870,7 +1872,7 @@ names(bayes_group_num_active) <- c(0,0.5,1)
 reshape2::melt(bayes_group_num_active)
 
 # >>>> Subject ----
-load("HCP_data/subjects.Rdata")
+load("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/subjects.Rdata")
 bayes_subject_files <- list.files(
   "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/single_subject",
   full.names = T) %>%
@@ -1892,10 +1894,12 @@ bayes_subject_num_active <- sapply(subjects, function(subject) {
         #   paste0(vis,"_subject_",subject,"_",hem,"_",thr_chr),
         #   bayes_subject_files, value = T
         # )
+        print(paste(subject,vis,hem,thr))
         result_file <- grep(
           paste0(subject,"_",vis,"_",hem,"_thr",thr,".rds"),
           bayes_subject_files, value = T
         )
+        if(length(result_file) > 1) result_file <- result_file[1]
         result_obj <- readRDS(result_file)
         out <- apply(result_obj$active,2,sum)
         return(as.matrix(out))
@@ -1909,8 +1913,31 @@ bayes_subject_num_active <- sapply(subjects, function(subject) {
 reshape2::melt(bayes_subject_num_active) %>% str
 
 # >> Classical ----
+classical_estimates <- readRDS("/Volumes/GoogleDrive/.shortcut-targets-by-id/1UetPPzvfP-rJYdT-9Kp9YBW5a9io2CcA/BayesGLM_Validation_old/5k_results/602_avg_estimates_PW_classical.rds")
+threshs <- c(0,0.5,1)
+combined_active_FWER <- sapply(classical_estimates, function(hem_res) {
+  num_locs <- dim(hem_res[[1]])[1]
+  bonferroni_cutoff <- 0.01 / num_locs # alpha = 0.01
+  data_df <- reshape2::melt(hem_res)
+  vertex_lists <- split(data_df,data_df$Var1)
+  thresh_active <- sapply(threshs, function(thr) {
+    active_all <- sapply(vertex_lists, function(v_df){
+      vt_df <- split(v_df, v_df$Var2)
+      active_vertex <- sapply(vt_df, function(vt) {
+        ttest_res <- t.test(x = vt$value, mu = thr, alternative = "greater")
+        active_v <- ifelse(ttest_res$p.value < bonferroni_cutoff, 1, 0)
+        return(active_v)
+      }, simplify = "array")
+      return(active_vertex)
+    }, simplify = 'array')
+    return(t(active_all))
+  }, simplify = F)
+  names(thresh_active) <- paste0(threshs,"%")
+  return(thresh_active)
+}, simplify = FALSE)
+saveRDS(combined_active_FWER, "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/502_HCP_classical_activations_PW_FWER.rds")
 # >>>> Group ----
-classical_group_num_active <- readRDS("HCP_results/5k_results/group/502_HCP_classical_activations_PW_FWER.rds")
+classical_group_num_active <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/502_HCP_classical_activations_PW_FWER.rds")
 classical_group_num_active <- sapply(classical_group_num_active, function(hem_act) {
   out <- sapply(hem_act, function(thr_act) {
     as.matrix(apply(thr_act,2,sum)) # Have to do as.matrix for reshape2::melt
@@ -1922,9 +1949,9 @@ classical_group_num_active <- sapply(classical_group_num_active, function(hem_ac
 reshape2::melt(classical_group_num_active)
 
 # >>>> Subject ----
-load("HCP_data/subjects.Rdata")
+load("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/subjects.Rdata")
 classical_subject_files <- list.files(
-  "HCP_results/5k_results/individual/PW/activations",
+  "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/individual/PW/activations",
   full.names = T) %>%
   grep(pattern = "503_",x = ., value = T) %>%
   grep(pattern = "classical",x = ., value = T, invert = F)
@@ -1935,10 +1962,12 @@ classical_subject_num_active <- sapply(subjects, function(subject) {
       L_or_R <- toupper(substring(hem,1,1))
       all_thr <- sapply(c(0,0.5,1), function(thr) {
         thr_chr <- paste0("thr",sub("\\.","", as.character(thr)),"_")
+        print(paste(subject,vis,hem,thr))
         result_file <- grep(
           paste0(vis,"_subject_",subject,"_",hem,"_",thr_chr),
           classical_subject_files, value = T
         )
+        if(length(result_file) > 1) result_file <- result_file[1]
         result_obj <- readRDS(result_file)
         out <- apply(result_obj$active,2,function(x) sum(as.numeric(x)))
         return(as.matrix(out))
@@ -2058,11 +2087,11 @@ compare_num_plot <-
   # scale_y_log10() +
   theme_classic() +
   # theme(axis.text.x = element_text(angle = 90,hjust = 1, vjust = 0.5), legend.position = "none")
-  theme(legend.position = "none", text = element_text(size = 10))
+  theme(legend.position = "none", text = element_text(size = 12))
 
 compare_num_plot
 
-ggsave("plots/5_compare_num_plot.png", width = 5, height = 4)
+ggsave("plots/5_compare_num_plot.png", width = 4, height = 3.5)
 
 # library(gridExtra)
 # marrangeGrob(grobs = num_activations_plots, nrow = 1, ncol = 3, top ="")
@@ -2073,6 +2102,159 @@ num_activations_plot
 ggsave("plots/5_num_activations_plot.png", width = 10, height = 7)
 
 # <<<< NOT USED IN MANUSCRIPT >>>>----
+
+# FIGURE: Residual plot ----
+result <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/individual/PW/500_103818_visit1_left_5k_20210125.rds")
+y <- result$GLMs_Bayesian$cortexL$y
+X <- Reduce(rbind,result$GLMs_Bayesian$cortexL$X)
+beta <- c(result$betas_Bayesian$avg$data$cortex_left)
+pred <- (X %*% beta)@x
+resid <- y - pred
+resid_mat <- matrix(resid, 4443, 568)
+
+cifti_obj <- result$betas_Bayesian$avg
+cifti_obj$data$cortex_left[,1] <- resid_mat[,1]
+
+library(ciftiTools)
+ciftiTools.setOption('wb_path','/Applications/workbench')
+plot(cifti_obj, hemisphere = 'left',idx = 1, view = 'lateral')
+
+# TABLE: Computation times ----
+bayes_single_dir <- "/Volumes/GoogleDrive/My Drive/danspen/BayesGLM_EM/HCP"
+
+bayes_files <- list.files(bayes_single_dir, full.names = T) |> grep(pattern = ".rds", value = TRUE)
+
+single_subject_times <- sapply(bayes_files, function(bf) {
+  read_obj <- readRDS(bf)
+  subject <- substring(bf, 57,62)
+  visit <- substring(bf, 64,69)
+  hem <- substring(bf, 71,75)
+  hem <- sub("_","",hem)
+  L_or_R <- toupper(substring(hem,1,1))
+  out <- data.frame(
+    subject = subject,
+    visit = visit,
+    hem = hem,
+    Bayesian_time = read_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$total_time,
+    classical_time = read_obj$GLMs_classical[[paste0("cortex",L_or_R)]]$total_time,
+    em_time = read_obj$GLMs_EM[[paste0("cortex",L_or_R)]]$total_time,
+    overall_time = read_obj$total_time
+  )
+  return(out)
+}, simplify = F)
+
+saveRDS(single_subject_times,file = "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/05_single_subject_times_PW.rds")
+
+single_subject_times <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/05_single_subject_times_PW.rds")
+
+single_subject_times <- Reduce(rbind,single_subject_times)
+names(single_subject_times)[4] <- "Bayesian_time"
+
+library(tidyverse)
+
+single_subj_df <-
+  single_subject_times %>%
+  mutate(preprocessing_time = overall_time - Bayesian_time - em_time - classical_time) %>%
+  pivot_longer(cols = -c("subject","visit","hem"),names_to = "Category", values_to = "Time") %>%
+  mutate(Category = sub("_time","", Category)) %>%
+  filter(Category != "em", Category != "overall") %>%
+  group_by(Category) %>%
+  summarize(Mean = round(mean(Time)/60,2), SD = round(sd(Time)/60,2)) %>%
+  ungroup() %>%
+  mutate(Mean_SD = paste0(Mean," (",SD,")")) %>%
+  select(-Mean,-SD) %>%
+  pivot_wider(names_from = Category, values_from = Mean_SD)
+
+group_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/subsamples"
+group_files <- list.files(group_dir, full.names = T) |>
+  grep(pattern = "501_HCP_", value = TRUE) |>
+  # grep(pattern = "_visit1_", value = TRUE) |>
+  grep(pattern = "_sample", value = TRUE) #|>
+  # grep(pattern = "_thresh0_", value = TRUE)
+
+group_times <- sapply(group_files, function(gf) {
+  num_subjects <- substring(gf,100,101)
+  total_time <- readRDS(gf)$total_time
+  out <- data.frame(N = num_subjects, Time = total_time)
+  return(out)
+}, simplify = F)
+
+group_times <- Reduce(rbind,group_times)
+
+group_df <-
+  group_times %>%
+  mutate(N = paste0("N = ",N)) %>%
+  group_by(N) %>%
+  summarize(Mean = round(mean(Time)/60,2), SD = round(sd(Time)/60,2),
+            Mean_SD = paste0(Mean," (",SD,")")) %>%
+  select(-Mean,-SD) %>%
+  pivot_wider(names_from = N, values_from = Mean_SD)
+
+group45_files <- list.files(group_dir, full.names = TRUE) |>
+  grep(pattern = "45subj", value = T)
+  # grep(pattern = "_202104", value = T)
+
+group45_times <- sapply(group45_files, function(g45) {
+  out <- data.frame(
+    N = 45,
+    Time = readRDS(g45)$total_time
+  )
+  return(out)
+}, simplify = F)
+
+group45_times <- Reduce(rbind, group45_times)
+
+group45_df <-
+  group45_times %>%
+  mutate(N = paste0("N = ",N)) %>%
+  group_by(N) %>%
+  summarize(Mean = round(mean(Time)/60,2), SD = round(sd(Time)/60,2),
+            Mean_SD = paste0(Mean," (",SD,")")) %>%
+  select(-Mean,-SD) %>%
+  pivot_wider(names_from = N, values_from = Mean_SD)
+
+# FIGURE: Comparison of smoothed/unsmoothed 5k/32k results ----
+result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Gambling_Task_Dan"
+subject_files <- list.files(result_dir, full.names = TRUE) |>
+  grep(pattern = "103818", value = T)
+
+cifti_list <- list(
+  bayes_5k = readRDS(grep("runLR",grep(
+    "5k_Bayes_classical_gambling", subject_files, value = T
+  ), value = T))$betas_Bayesian$LR,
+  classical_5k = readRDS(grep("runLR",grep(
+    "5k_Bayes_classical_gambling", subject_files, value = T
+  ), value = T))$betas_classical$LR,
+  classical_5k_smoothed = readRDS(
+    grep("5k_classical_smoothed_gambling", subject_files, value = T)
+  )$betas_classical$LR,
+  bayes_32k = readRDS(grep(
+    "32k_Bayes_classical_gambling", subject_files, value = T
+  ))$betas_Bayesian$LR,
+  classical_32k = readRDS(grep(
+    "32k_classical_gambling", subject_files, value = T
+  ))$betas_classical$LR,
+  classical_32k_smoothed = readRDS(
+    grep("32k_classical_smoothed_gambling", subject_files, value = T)
+  )$betas_classical$LR
+)
+
+library(ciftiTools)
+ciftiTools.setOption('wb_path','/Applications/workbench')
+
+mapply(function(cif,nm) {
+  plot(
+    cif,
+    hemisphere = 'left',
+    view = 'lateral',
+    idx = 1,
+    zlim = c(-1, 1),
+    legend_embed = F,
+    surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+    surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii",
+    fname = paste0("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_",nm,"_103818_gambling_estimate.png")
+  )
+}, cif = cifti_list, nm = names(cifti_list))
 
 # FIGURE: Permutation activations ----
 library(ciftiTools)

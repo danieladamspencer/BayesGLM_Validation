@@ -52,3 +52,6 @@ vignettes/*.pdf
 *.synctex.gz
 *.gslides
 Bayesian_GLM_Validation_Study_arXiv.zip
+
+# Mac OS X files
+.DS_Store

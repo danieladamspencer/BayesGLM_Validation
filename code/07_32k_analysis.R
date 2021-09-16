@@ -159,7 +159,7 @@ for(subject in subjects) {
                                    ar_order = 6,
                                    ar_smooth = 6,
                                    session_names = c('LR','RL'), # Multiple sessions
-                                   resamp_res = 5000, # Don't forget to change this
+                                   resamp_res = NULL, # Don't forget to change this
                                    num.threads = 6, # Remember the tradeoff here (speed/memory) 4 to 6 threads seems optimal based on testing
                                    verbose = TRUE,
                                    outfile = NULL,
