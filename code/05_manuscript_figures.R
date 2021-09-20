@@ -88,16 +88,57 @@ for(subject in subjects) {
 library(ciftiTools)
 ciftiTools.setOption('wb_path',"/Applications/workbench")
 library(BayesfMRI)
-result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/single_session"
-result_files <- list.files(result_dir, full.names = T)
-result_files <- grep(".rds", result_files, value= T)
-load("HCP_data/subjects.Rdata")
-subjects <- subjects[1]
-sessions <- c("LR")
-task_idx <- 3
+result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
+result_files <- list.files(result_dir, full.names = T) |>
+  grep(pattern = "FWHM6", value= T)
+load("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/subjects.Rdata")
+subjects <- subjects[c(1,2,4)]
 task_names <- c("visual_cue","foot","hand","tongue")
+# subject <- subjects[1]; visit <- 1; run <- "LR"; hem <- "left"
 for(subject in subjects) {
-  for(v in 1) {
+  for(visit in 1:2) {
+    for(run in c("LR","RL","avg")) {
+      for(hem in c("left","right")) {
+        result_obj <- readRDS(
+          grep(pattern = subject,result_files,value = T) |>
+            grep(pattern = paste0("visit",visit),value = TRUE) |>
+            grep(pattern = hem,value = T)
+        )
+        if(hem == "left") cifti_obj <- result_obj$betas_classical[[run]]
+        if(hem == "right") cifti_obj <- merge_xifti()
+        for(task_idx in 1:4) {
+          cifti_obj <- result_obj$betas_classical[[run]]
+          if(task_idx %in% c(1,4)) {
+            plot(
+              cifti_obj,
+              idx = task_idx,zlim = c(-1,1), legend_embed = F,
+              fname = paste0("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_classical_",subject,"_visit",visit,"_run",
+                             run,"_",task_names[task_idx],"_estimate.png"
+              ),
+              surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+              surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
+            )
+          }
+          if(task_idx %in% c(2,3)) {
+            for(hem in c("left","right")) {
+              plot(
+                cifti_obj, hemisphere = hem,
+                idx = task_idx,zlim = c(-1,1), legend_embed = F,
+                fname = paste0("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_classical_",subject,"_visit",visit,"_run",
+                               run,"_",hem,"_",task_names[task_idx],"_estimate.png"
+                ),
+                surfL = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii",
+                surfR = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB/data/Q1-Q6_R440.R.inflated.32k_fs_LR.surf.gii"
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+for(subject in subjects) {
     for(sess in sessions) {
       cifti_obj <- readRDS("HCP_data/cifti_5k_template_whole.rds")
       for(h in c("left","right")) {
@@ -152,7 +193,6 @@ for(subject in subjects) {
         }
       }
     }
-  }
 }
 
 # >> Multirun ----
@@ -2102,6 +2142,265 @@ num_activations_plot
 ggsave("plots/5_num_activations_plot.png", width = 10, height = 7)
 
 # <<<< NOT USED IN MANUSCRIPT >>>>----
+
+# FIGURE: Correlations boxplot for smoothed classical results ----
+classical_result_dir_5k <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/classical"
+
+classical_smoothed_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
+smoothed_files <- list.files(classical_smoothed_dir, full.names = T) |>
+  grep(pattern = "_5k_",value = T)
+# How far are the analyses right now?
+smoothed_files_8mm <- grep(pattern = "_FWHM8_",smoothed_files, value = TRUE) |>
+  grep(pattern = "visit1", value = TRUE) |>
+  grep(pattern = "right", value = TRUE)
+tail(smoothed_files_8mm,1) # Done up to subject 192439
+load("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/subjects.Rdata")
+subjects_smooth <- subjects[seq(1,which(subjects == "192439"))]
+
+classical_visit1_5k <- sapply(subjects_smooth, function(subject) {
+  classical_file_left <- grep(paste0(subject,"_visit1_left"), list.files(classical_result_dir_5k, full.names = T), value = T)
+  classical_file_right <- grep(paste0(subject,"_visit1_right"), list.files(classical_result_dir_5k, full.names = T), value = T)
+  class_visit1_est <- list(
+    left = readRDS(classical_file_left)$betas_classical$avg$data$cortex_left,
+    right = readRDS(classical_file_right)$betas_classical$avg$data$cortex_right
+  )
+  return(class_visit1_est)
+}, simplify = FALSE)
+
+classical_visit1_5k_smoothed <- sapply(seq(3,8), function(fwhm) {
+  sapply(subjects_smooth, function(subject) {
+    print(paste(subject,fwhm))
+    classical_file_left <- grep(paste0(subject,"_visit1_left"), smoothed_files, value = T) |> grep(pattern = paste0("FWHM",fwhm), value = T)
+    classical_file_right <- grep(paste0(subject,"_visit1_right"), smoothed_files, value = T) |> grep(pattern = paste0("FWHM",fwhm), value = T)
+    if(length(classical_file_left) > 1) classical_file_left <- classical_file_left[1]
+    if(length(classical_file_right) > 1) classical_file_right <- classical_file_right[1]
+    class_visit1_est <- list(
+      left = readRDS(classical_file_left)$betas_classical$avg$data$cortex_left,
+      right = readRDS(classical_file_right)$betas_classical$avg$data$cortex_right
+    )
+    return(class_visit1_est)
+  }, simplify = FALSE)
+}, simplify = F)
+names(classical_visit1_5k_smoothed) <- paste0("FWHM",seq(3,8))
+
+classical_visit1_5k_smoothed$FWHM0 <- classical_visit1_5k
+
+classical_visit2_5k <- sapply(subjects, function(subject) {
+  classical_file_left <- grep(paste0(subject,"_visit2_left"), list.files(classical_result_dir_5k, full.names = T), value = T)
+  classical_file_right <- grep(paste0(subject,"_visit2_right"), list.files(classical_result_dir_5k, full.names = T), value = T)
+  class_visit2_est <- list(
+    left = readRDS(classical_file_left)$betas_classical$avg$data$cortex_left,
+    right = readRDS(classical_file_right)$betas_classical$avg$data$cortex_right
+  )
+  return(class_visit2_est)
+}, simplify = FALSE)
+
+smooth_dims <- sapply(classical_visit1_5k_smoothed, function(x) {
+  sapply(x, function(xx) {
+    sapply(xx, function(xxx) as.matrix(dim(xxx)), simplify = F)
+  }, simplify = F)
+}, simplify = F)
+library(tidyverse)
+reshape2::melt(smooth_dims, value.name = "dimension") %>%
+  group_by(L3, Var1) %>%
+  summarize(num_diff = length(unique(dimension)))
+
+classical_cor_5k <- sapply(classical_visit1_5k_smoothed, function(cv1_5ks) {
+  mapply(function(est,tru) {
+    tongue <- cor(c(est[[1]][,1],est[[2]][,1]),c(tru[[1]][,1],tru[[2]][,1]))
+    cue <- cor(c(est[[1]][,4],est[[2]][,4]),c(tru[[1]][,4],tru[[2]][,4]))
+    right_foot <- cor(est[[1]][,2], tru[[1]][,2])
+    left_foot <- cor(est[[2]][,2], tru[[2]][,2])
+    right_hand <- cor(est[[1]][,3], tru[[1]][,3])
+    left_hand <- cor(est[[2]][,3], tru[[2]][,3])
+    subj_cor_df <- data.frame(
+      cue = cue,
+      right_foot = right_foot,
+      right_hand = right_hand,
+      left_foot = left_foot,
+      left_hand = left_hand,
+      tongue = tongue
+    )
+    return(subj_cor_df)
+  }, est = cv1_5ks, tru = classical_visit2_5k, SIMPLIFY = F)
+}, simplify = FALSE)
+
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+color_pal <- c(gg_color_hue(2)[1], "red", gg_color_hue(2)[2], "turquoise2","blue3")
+
+smooth_cor_plot <-
+  reshape2::melt(classical_cor_5k, value.name = "Correlation") %>%
+  mutate(variable = sub("_"," ", variable),
+         FWHM = sub("FWHM","",L1),
+         FWHM = factor(FWHM)) %>%
+  ggplot() +
+  geom_boxplot(aes(x = FWHM, y = Correlation, color = FWHM)) +
+  labs(
+    y = "Correlation",
+    x = ""
+  ) +
+  scale_color_discrete("Smoothing FWHM") +
+  facet_wrap(~variable, scales = "fixed",nrow = 1) +
+  guides(color = guide_legend(nrow = 1)) +
+  theme_classic() +
+  theme(text=element_text(size = 14),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.position = "bottom",
+        legend.box.spacing = unit(-15,"points"),
+        # legend.title = element_blank(),
+        plot.margin = margin(0,1,1,1,"pt"))
+# theme(plot.title = element_text(hjust = 0.5,size = 7),
+#       axis.title = element_text(size = 9))
+
+smooth_cor_plot
+
+ggsave(filename = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_smooth_cor_plot.png",plot = smooth_cor_plot, width = 7, height = 4)
+
+# FIGURE: Plot of hyperparameter densities across hemispheres ----
+result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/PW"
+result_files <- list.files(result_dir, full.names = TRUE) |>
+  grep(pattern = "103818",value = TRUE) |>
+  grep(pattern = "visit1", value = TRUE)
+left_result <- readRDS(result_files[1])
+right_result <- readRDS(result_files[2])
+library(tidyverse)
+mutate(left_result$GLMs_Bayesian$cortexL$theta_posteriors, hemisphere = 'left') %>%
+  full_join(
+    mutate(right_result$GLMs_Bayesian$cortexR$theta_posteriors, hemisphere = 'right')
+  )
+
+# FIGURE: Comparison of cutoffs from permutation testing and permutation testing ----
+# >> 5k data ----
+model_obj <- readRDS("~/Desktop/500_103818_visit1_left_5k_classical_1000permutations_20210908.rds")
+model_obj <- model_obj$GLMs_classical$cortexL
+sess_ind <- 3
+beta_est <- model_obj[[sess_ind]]$estimates
+se_beta <- model_obj[[sess_ind]]$SE_estimates
+DOF <- model_obj[[sess_ind]]$DOF
+
+alpha <- 0.01
+t_stats <- (model_obj[[sess_ind]]$null_estimates) / model_obj[[sess_ind]]$null_SE_estimates
+max_tstats <- apply(t_stats,2:3,max, na.rm = TRUE)
+null_thresholds <- apply(max_tstats, 1, quantile, probs = (1 - alpha))
+
+n_comps <- sum(!is.na(beta_est[,1]))
+bonf_cutoff <- qt(p = 1 - alpha/n_comps,df = DOF,lower.tail = T)
+
+cutoffs_df <- data.frame(
+  Task = c("cue","right foot","right hand","tongue"),
+  cutoff = c(null_thresholds)
+)
+
+col_pal <- rgb(c(230, 86, 0, 0,204),c(159,180,158,114,121),c(0,233,115,178,167), maxColorValue = 255)
+
+library(tidyverse)
+g <- reshape2::melt(max_tstats, value.name = "Tstats") %>%
+  mutate(Task = c("cue","right foot","right hand","tongue")[Var1],
+         Task = factor(Task, levels = c("cue","right foot","right hand","tongue","Bonferroni"))) %>%
+  ggplot() +
+  geom_density(aes(x = Tstats, fill = Task, color = Task), alpha = 0.3) +
+  geom_vline(aes(xintercept = cutoff, color = Task), data = cutoffs_df) +
+  geom_vline(aes(xintercept = bonf_cutoff)) +
+  labs(x = "Maximum null distribution test statistics", y = "Density", title = "Permutation Cutoffs - 5K resampled data") +
+  lims(y = c(0,1.4)) +
+  geom_text(aes(x = bonf_cutoff, y = 1, label = "Bonferroni"), angle = 90, vjust = 0) +
+  geom_hline(aes(yintercept = 0)) +
+  scale_fill_discrete("Task") +
+  scale_color_discrete("Task") +
+  theme_classic()
+g
+
+# >> 32k data ----
+model_obj <- readRDS("~/Desktop/500_103818_visit1_left_32k_classical_1000permutations_20210916.rds")
+model_obj <- model_obj$GLMs_classical$cortexL
+sess_ind <- 3
+beta_est <- model_obj[[sess_ind]]$estimates
+se_beta <- model_obj[[sess_ind]]$SE_estimates
+DOF <- model_obj[[sess_ind]]$DOF
+
+alpha <- 0.01
+t_stats <- (model_obj[[sess_ind]]$null_estimates) / model_obj[[sess_ind]]$null_SE_estimates
+max_tstats <- apply(t_stats,2:3,max, na.rm = TRUE)
+null_thresholds <- apply(max_tstats, 1, quantile, probs = (1 - alpha))
+
+n_comps <- sum(!is.na(beta_est[,1]))
+bonf_cutoff_32k <- qt(p = 1 - alpha/n_comps,df = DOF,lower.tail = T)
+
+cutoffs_df <- data.frame(
+  Task = c("cue","right foot","right hand","tongue"),
+  cutoff = c(null_thresholds)
+)
+
+col_pal <- rgb(c(230, 86, 0, 0,204),c(159,180,158,114,121),c(0,233,115,178,167), maxColorValue = 255)
+
+library(tidyverse)
+g2 <- reshape2::melt(max_tstats, value.name = "Tstats") %>%
+  mutate(Task = c("cue","right foot","right hand","tongue")[Var1],
+         Task = factor(Task, levels = c("cue","right foot","right hand","tongue","Bonferroni"))) %>%
+  ggplot() +
+  geom_density(aes(x = Tstats, fill = Task, color = Task), alpha = 0.3) +
+  geom_vline(aes(xintercept = cutoff, color = Task), data = cutoffs_df) +
+  geom_vline(aes(xintercept = bonf_cutoff_32k)) +
+  labs(x = "Maximum null distribution test statistics", y = "Density", title = "Permutation Cutoffs - 32K data") +
+  lims(y = c(0,1.4)) +
+  geom_text(aes(x = bonf_cutoff_32k, y = 1, label = "Bonferroni"), angle = 90, vjust = 0) +
+  geom_hline(aes(yintercept = 0)) +
+  scale_fill_discrete("Task") +
+  scale_color_discrete("Task") +
+  theme_classic()
+g2
+
+# >> 32k smoothed data ----
+model_obj <- readRDS("~/Desktop/500_103818_visit1_left_32k_smoothed_FWHM5_classical_1000permutations_20210916.rds")
+model_obj <- model_obj$GLMs_classical$cortexL
+sess_ind <- 3
+beta_est <- model_obj[[sess_ind]]$estimates
+se_beta <- model_obj[[sess_ind]]$SE_estimates
+DOF <- model_obj[[sess_ind]]$DOF
+
+alpha <- 0.01
+t_stats <- (model_obj[[sess_ind]]$null_estimates) / model_obj[[sess_ind]]$null_SE_estimates
+max_tstats <- apply(t_stats,2:3,max, na.rm = TRUE)
+null_thresholds <- apply(max_tstats, 1, quantile, probs = (1 - alpha))
+
+n_comps <- sum(!is.na(beta_est[,1]))
+bonf_cutoff_32k <- qt(p = 1 - alpha/n_comps,df = DOF,lower.tail = T)
+
+cutoffs_df <- data.frame(
+  Task = c("cue","right foot","right hand","tongue"),
+  cutoff = c(null_thresholds)
+)
+
+col_pal <- rgb(c(230, 86, 0, 0,204),c(159,180,158,114,121),c(0,233,115,178,167), maxColorValue = 255)
+
+library(tidyverse)
+g3 <- reshape2::melt(max_tstats, value.name = "Tstats") %>%
+  mutate(Task = c("cue","right foot","right hand","tongue")[Var1],
+         Task = factor(Task, levels = c("cue","right foot","right hand","tongue","Bonferroni"))) %>%
+  ggplot() +
+  geom_density(aes(x = Tstats, fill = Task, color = Task), alpha = 0.3) +
+  geom_vline(aes(xintercept = cutoff, color = Task), data = cutoffs_df) +
+  geom_vline(aes(xintercept = bonf_cutoff_32k)) +
+  labs(x = "Maximum null distribution test statistics", y = "Density", title = "Permutation Cutoffs - 32K smoothed data") +
+  lims(y = c(0,1.4)) +
+  geom_text(aes(x = bonf_cutoff_32k, y = 1, label = "Bonferroni"), angle = 90, vjust = 0) +
+  geom_hline(aes(yintercept = 0)) +
+  scale_fill_discrete("Task") +
+  scale_color_discrete("Task") +
+  theme_classic()
+g3
+
+# >> Put the three together ----
+library(gridExtra)
+g_all <- grid.arrange(g + theme(legend.position = 'none'),g2 + theme(legend.position = 'none'),g3 + theme(legend.position = 'none'), nrow = 1, ncol = 3)
+g_all
+
+ggsave(filename = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_permutation_cutoffs.png",plot = g_all, width = 14, height = 5)
 
 # FIGURE: Residual plot ----
 result <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/individual/PW/500_103818_visit1_left_5k_20210125.rds")
