@@ -36,62 +36,66 @@ for(thr in threshold) {
       }
       visit_exc[[v]] <- Reduce(rbind,hems_exc)
     }
-    subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2) / mean(c(sum(v1),sum(v2))) },
-                                    v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
-                                    v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
-    # subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2)},
+    # subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2) / mean(c(sum(v1),sum(v2))) },
     #                                 v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
     #                                 v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
+    subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2)}, # For overlap
+                                    v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
+                                    v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
   }
   all_dice <- Reduce(rbind, subjects_dice)
-  # saveRDS(all_dice, paste0("HCP_results/5k_results/6_overlap_size_PW_threshold",thr,".rds"))
-  saveRDS(all_dice, paste0("HCP_results/5k_results/6_Dice_coefficient_PW_threshold",thr,".rds"))
+  saveRDS(all_dice, paste0("HCP_results/5k_results/6_overlap_size_PW_threshold",thr,".rds"))
+  # saveRDS(all_dice, paste0("HCP_results/5k_results/6_Dice_coefficient_PW_threshold",thr,".rds"))
 }
 
 
 # # CLASSICAL ----
-# result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/classical"
-# result_files <- list.files(result_dir, full.names = TRUE)
-# load("HCP_data/subjects.Rdata") # The subjects object (character vector)
-# result_files <- grep(".rds", result_files, value = T)
-# result_files <- grep("500_", result_files, value = T)
-# hems <- c('left','right')
-# threshold <- 1
-# subject_dice <- vector('numeric', length = length(subjects))
-# library(BayesfMRI)
-# library(ciftiTools)
-# ciftiTools.setOption('wb_path','/Applications/workbench')
-# subjects_dice <- list()
-# for(subj in subjects) {
-#   visit_exc <- list()
-#   for(v in 1:2) {
-#     hems_exc <- list()
-#     for(h in hems) {
-#       L_or_R <- toupper(substring(h,1,1))
-#       filen <- grep(paste0(subj,"_visit",v,"_",h), result_files, value = T)
-#       result_subj <- readRDS(filen)
-#       model_obj <- result_subj$GLMs_classical[[paste0("cortex",L_or_R)]]
-#       nvox <- nrow(result_subj$betas_classical[[1]]$data[[paste0("cortex_",h)]])
-#       K <- length(result_subj$beta_names)
-#       class_act <- id_activations.classical(model_obj,alpha = 0.01,correction = "FWER",threshold = threshold)
-#       in_mask <- model_obj[[1]]$mask
-#       mat_out <- matrix(0, nvox, (K+2))
-#       if(h == 'left') mat_out[,1:4] <- class_act$active[in_mask,c(1,4,2,3)]
-#       if(h == 'right') mat_out[,c(1,2,5,6)] <- class_act$active[in_mask,c(1,4,2,3)]
-#       hems_exc[[h]] <- mat_out
-#     }
-#     visit_exc[[v]] <- Reduce(rbind,hems_exc)
-#   }
-#   # subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2) / mean(c(sum(v1),sum(v2))) },
-#   #                                 v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
-#   #                                 v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
-#   subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2)},
-#                                   v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
-#                                   v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
-# }
-# all_dice <- Reduce(rbind, subjects_dice)
-# # saveRDS(all_dice, paste0("HCP_results/5k_results/6_classical_FWER_Dice_coefficient_PW_threshold",threshold,".rds"))
-# saveRDS(all_dice, paste0("HCP_results/5k_results/6_classical_FWER_overlap_size_PW_threshold",threshold,".rds"))
+result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
+result_files <- list.files(result_dir, full.names = TRUE) |>
+  grep(pattern = "classical", value = T) |>
+  grep(pattern = "FWHM6", value = T)
+load("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/subjects.Rdata") # The subjects object (character vector)
+hems <- c('left','right')
+subject_dice <- vector('numeric', length = length(subjects))
+library(BayesfMRI)
+library(ciftiTools)
+ciftiTools.setOption('wb_path','/Applications/workbench')
+# subj <- subjects[1]; v <- 1; h <- hems[1]; threshold <- 0
+for(threshold in c(0,0.5,1)) {
+  subjects_dice <- list()
+  for(subj in subjects) {
+    visit_exc <- list()
+    for(v in 1:2) {
+      hems_exc <- list()
+      for(h in hems) {
+        L_or_R <- toupper(substring(h,1,1))
+        filen <- grep(paste0(subj,"_visit",v,"_",h), result_files, value = T)
+        if(length(filen) > 1) filen <- filen[1] # Due to Google Drive aliasing
+        result_subj <- readRDS(filen)
+        model_obj <- result_subj$GLMs_classical[[paste0("cortex",L_or_R)]]
+        nvox <- nrow(result_subj$betas_classical[[1]]$data[[paste0("cortex_",h)]])
+        K <- length(result_subj$beta_names)
+        class_act <- id_activations.classical(model_obj,alpha = 0.01,correction = "FWER",threshold = threshold)
+        in_mask <- model_obj[[1]]$mask
+        mat_out <- matrix(0, nvox, (K+2))
+        if(h == 'left') mat_out[,1:4] <- class_act$active[,c(1,4,2,3)]
+        if(h == 'right') mat_out[,c(1,2,5,6)] <- class_act$active[,c(1,4,2,3)]
+        hems_exc[[h]] <- mat_out
+      }
+      visit_exc[[v]] <- Reduce(rbind,hems_exc)
+    }
+    # Calculate the Dice coefficient for each task
+    # subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2) / mean(c(sum(v1),sum(v2))) },
+    #                                 v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
+    #                                 v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
+    subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2)}, # For overlap size
+                                    v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
+                                    v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
+  }
+  all_dice <- Reduce(rbind, subjects_dice)
+  # saveRDS(all_dice, paste0("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/06_classical_FWER_Dice_coefficient_PW_threshold",threshold,".rds"))
+  saveRDS(all_dice, paste0("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/06_classical_FWER_overlap_size_PW_threshold",threshold,".rds"))
+}
 #
 # # # Plot the Dice Coefficients ----
 # dice_result_files <- list.files("HCP_results/5k_results", full.names = T)
