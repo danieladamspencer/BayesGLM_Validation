@@ -2173,16 +2173,16 @@ num_activations_plots <- map(c(0,0.5,1), function(thr) {
 })
 
 group_bayes_df <- filter(group_activations_df,
-                         model == "Bayes" & thresh == 0.5)
+                         model == "Bayes") #& thresh == 0.5
 group_classical_df <- filter(group_activations_df,
-                             model == "Classical" & thresh == 0.5)
+                             model == "Classical") #& thresh == 0.5
 group_df <- full_join(group_bayes_df, group_classical_df) %>%
   mutate(model = ifelse(model == "Bayes", "Bayesian GLM","Classical GLM"),
          model_thresh = paste0(model," (",thresh,"%)"))
 subj_bayes_df <- filter(subject_activations_df,
-                        model == "Bayes", thresh == 0.5)
+                        model == "Bayes") #, thresh == 0.5
 subj_classical_df <- filter(subject_activations_df,
-                            model == "Classical", thresh == 0.5)
+                            model == "Classical") #, thresh == 0.5
 subj_df <- full_join(subj_bayes_df, subj_classical_df)
 
 col_pal <- rgb(c(230, 86, 0, 0,204),c(159,180,158,114,121),c(0,233,115,178,167), maxColorValue = 255)
@@ -2196,7 +2196,7 @@ compare_num_plot <-
   ggplot(aes(x = task, y = activations, color = model, group = model)) +
   # geom_boxplot(aes(x = model, y = activations + 1, color = model)) +
   # geom_boxplot(aes(x = task, y = activations), outlier.alpha = 0, width = 0.4) +
-  geom_boxplot(aes(group = interaction(task, model)),outlier.alpha = 0, width = 0.4) +
+  geom_boxplot(aes(group = interaction(task, model)), color = "black",outlier.alpha = 0, width = 0.4) +
   # geom_jitter(aes(x = task, y = activations, color = task), width = 0.2, height = 0, alpha = 0.3) +
   # geom_jitter(width = 0.2, height = 0, alpha = 0.3) +
   geom_point(alpha = 0.3, position = position_jitterdodge(jitter.width = 0.2,dodge.width = 0.4)) +
@@ -2207,23 +2207,27 @@ compare_num_plot <-
   # scale_color_manual("", values = col_pal) +
   # scale_shape_manual("",values = c("B","C")) +
   scale_color_discrete("") +
+  facet_wrap(~thresh, scales = "free_y", labeller = label_bquote(cols = gamma == .(thresh)~'%')) +
   # facet_wrap(~task) +
   # facet_grid(~thresh, scales = "free", labeller = label_bquote(cols = gamma == .(thresh)~'%')) +
   # facet_grid(model_thresh~., scales = "fixed") +
   geom_hline(yintercept = 0) +
   labs(x = "",y = "Number of Active Locations") +
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 4))) +
   # scale_y_log10() +
   theme_classic() +
   # theme(axis.text.x = element_text(angle = 90,hjust = 1, vjust = 0.5), legend.position = "none")
   theme(legend.position = "top",
-        text = element_text(size = 12))
+        text = element_text(size = 12),
+        axis.text.x = element_text(angle = 45, vjust = 0.6, hjust = 0.4),
+        axis.ticks.x = element_blank())
 
 compare_num_plot
 plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
-ggsave(file.path(plot_dir,"5_compare_num_plot.png"), width = 4, height = 3.5)
+ggsave(file.path(plot_dir,"5_compare_num_plot.png"), width = 8, height = 4.5)
 
-# library(gridExtra)
-# marrangeGrob(grobs = num_activations_plots, nrow = 1, ncol = 3, top ="")
+library(gridExtra)
+marrangeGrob(grobs = num_activations_plots, nrow = 1, ncol = 3, top ="")
 
 library(ggpubr)
 num_activations_plot <- ggarrange(plotlist = num_activations_plots, nrow = 1, ncol = 3)
@@ -2298,7 +2302,7 @@ result_svh <- BayesGLM_cifti(cifti_fname = c(fname1_ts, fname2_ts), # Multi-sess
                              ar_smooth = 6,
                              session_names = c('LR','RL'), # Multiple sessions
                              # session_names = c('LR'), # single session
-                             resamp_res = 15000, # Don't forget to change this
+                             resamp_res = 5000, # Don't forget to change this
                              num.threads = 6, # Remember the tradeoff here (speed/memory) 4 to 6 threads seems optimal based on testing
                              verbose = TRUE,
                              outfile = NULL,
@@ -2308,15 +2312,13 @@ result_svh <- BayesGLM_cifti(cifti_fname = c(fname1_ts, fname2_ts), # Multi-sess
                              num_permute = 1000)
 total_time <- proc.time()[3] - start_time
 result_svh$total_time <- total_time
-saveRDS(result_svh, file=file.path(result_dir,paste0("500_",subject,"_visit",visit,"_",hem,"_15k_classical_",format(Sys.Date(),"%Y%m%d"),".rds")))
-
-
+saveRDS(result_svh, file=file.path(result_dir,paste0("500_",subject,"_visit",visit,"_",hem,"_5k_classical_FWHM6_",format(Sys.Date(),"%Y%m%d"),".rds")))
 
 library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
 light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
 col_pal <- c(light_orange,"red","purple")
-result <- readRDS("~/Desktop/500_103818_visit1_left_5k_classical_permutations_20210907.rds")
+result <- readRDS("~/Desktop/500_103818_visit1_left_5k_classical_FWHM6_20210928.rds")
 library(BayesfMRI)
 active_perm <- sapply(c(0,0.5,1), function(thr) {
   id_out <- id_activations_cifti(result,alpha = 0.01,method = 'classical',threshold = thr,correction = 'permutation')
@@ -2906,6 +2908,78 @@ kappa_tau_plot
 
 ggsave(filename = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_lateral_task_posterior_density_kappa_tau.png",plot = kappa_tau_plot, width = 9, height = 5)
 
+# FIGURE: Errors across hemisphere ----
+library(Matrix)
+library(ciftiTools)
+ciftiTools.setOption('wb_path','/Applications/workbench')
+classical_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
+result_files <- list.files(classical_dir, full.names = TRUE) |>
+  grep(pattern = "FWHM6", value = TRUE) |>
+  grep(pattern = "Bayes", value = TRUE) |>
+  grep(pattern = "visit1", value = TRUE) |>
+  grep(pattern = "103818", value = TRUE)
+
+# hem <- 'left'
+err_list <- list(
+  left = list(
+    session1 = matrix(NA,4443, 284),
+    session2 = matrix(NA,4443, 284)
+  ),
+  right = list(
+    session1 = matrix(NA,4444, 284),
+    session2 = matrix(NA,4444, 284)
+  )
+)
+for(hem in c('left','right')) {
+  L_or_R <- toupper(substring(hem,1,1))
+  hem_file <- grep(hem,result_files, value = T)
+  hem_obj <- readRDS(hem_file)
+  ntime <- nrow(hem_obj$design[[1]])
+  nvox <- nrow(hem_obj$betas_classical$LR$data[[paste0("cortex_",hem)]])
+  nsess <- length(hem_obj$session_names)
+  pw_y <- hem_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$y
+  pw_X <- hem_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$X
+  betas <- hem_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$beta_estimates
+  betas <- sapply(betas,function(b) c(b[hem_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$mask,]), simplify = F)
+  fit_pwy <- mapply(`%*%`, x = pw_X, y = betas)
+  fit_pwy <- Reduce(function(x,y) c(x@x,y@x),fit_pwy)
+  err <- pw_y - fit_pwy
+  err_array <- array(err, dim = c(nvox,ntime,nsess))
+  err_sess <- asplit(err_array,3)
+  err_list[[hem]]$session1 <- err_sess[[1]]
+  err_list[[hem]]$session2 <- err_sess[[2]]
+}
+
+err_list <- sapply(err_list, Reduce, f = cbind, simplify = F)
+err_mat <- Reduce(rbind,err_list)
+err_corr <- cor(t(err_mat))
+corr_upper_tri <- err_corr[upper.tri(err_corr)]
+
+random_vert <- sample(1:4443, size = 3)
+cifti_corr <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_data/603_cifti_5k_template_whole.rds")
+cifti_corr$data$cortex_left <- t(err_corr[random_vert, 1:4443])
+cifti_corr$data$cortex_right <- t(err_corr[random_vert, 4444:8887])
+vert_idx <- 1
+vert_mat <- matrix(0,8887,3)
+for(i in 1:3) {
+  vert_mat[random_vert[i],i] <- 1
+}
+cifti_vert <- newdata_xifti(cifti_corr, vert_mat)
+# cifti_vert <- convert_xifti(cifti_vert, to = "dlabel")
+plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
+for(vert_idx in 1:3) {
+  plot(cifti_corr, zlim = c(-0.5,0.5), idx = vert_idx, legend_embed = F,
+       title = paste("Correlations: Vertex",random_vert[vert_idx]),
+       fname = file.path(plot_dir,paste0("05_correlations_vertex",random_vert[vert_idx],".png")))
+
+  plot(cifti_vert, color_mode = "qualitative", idx = vert_idx,
+       title = paste("Location, Vertex",random_vert[vert_idx]),
+       # borders = TRUE, edge_color = 'black',
+       colors = c("yellow","blue"),
+       fname = file.path(plot_dir,paste0("05_vertex",random_vert[vert_idx],".png")))
+}
+
+
 # <<<<< NOT USED IN MANUSCRIPT >>>>>----
 # FIGURE: First few frames from subject 562345 ----
 library(ciftiTools)
@@ -2967,14 +3041,54 @@ g <- reshape2::melt(max_tstats, value.name = "Tstats") %>%
   geom_density(aes(x = Tstats, fill = Task, color = Task), alpha = 0.3) +
   geom_vline(aes(xintercept = cutoff, color = Task), data = cutoffs_df) +
   geom_vline(aes(xintercept = bonf_cutoff)) +
-  labs(x = "Maximum null distribution test statistics", y = "Density", title = "Permutation Cutoffs - 5K resampled data") +
-  lims(y = c(0,1.4)) +
+  labs(x = "Maximum null distribution test statistics", y = "Density", title = "Permutation Cutoffs - 5K data") +
+  lims(y = c(0,1.4), x = c(2,7)) +
   geom_text(aes(x = bonf_cutoff, y = 1, label = "Bonferroni"), angle = 90, vjust = 0) +
   geom_hline(aes(yintercept = 0)) +
   scale_fill_discrete("Task") +
   scale_color_discrete("Task") +
   theme_classic()
-g
+# g
+
+# >> 5k smoothed data ----
+model_obj <- readRDS("~/Desktop/500_103818_visit1_left_5k_classical_FWHM6_20210928.rds")
+model_obj <- model_obj$GLMs_classical$cortexL
+sess_ind <- 3
+beta_est <- model_obj[[sess_ind]]$estimates
+se_beta <- model_obj[[sess_ind]]$SE_estimates
+DOF <- model_obj[[sess_ind]]$DOF
+
+alpha <- 0.01
+t_stats <- (model_obj[[sess_ind]]$null_estimates) / model_obj[[sess_ind]]$null_SE_estimates
+max_tstats <- apply(t_stats,2:3,max, na.rm = TRUE)
+null_thresholds <- apply(max_tstats, 1, quantile, probs = (1 - alpha))
+
+n_comps <- sum(!is.na(beta_est[,1]))
+bonf_cutoff <- qt(p = 1 - alpha/n_comps,df = DOF,lower.tail = T)
+
+cutoffs_df <- data.frame(
+  Task = c("cue","right foot","right hand","tongue"),
+  cutoff = c(null_thresholds)
+)
+
+col_pal <- rgb(c(230, 86, 0, 0,204),c(159,180,158,114,121),c(0,233,115,178,167), maxColorValue = 255)
+
+library(tidyverse)
+g4 <- reshape2::melt(max_tstats, value.name = "Tstats") %>%
+  mutate(Task = c("cue","right foot","right hand","tongue")[Var1],
+         Task = factor(Task, levels = c("cue","right foot","right hand","tongue","Bonferroni"))) %>%
+  ggplot() +
+  geom_density(aes(x = Tstats, fill = Task, color = Task), alpha = 0.3) +
+  geom_vline(aes(xintercept = cutoff, color = Task), data = cutoffs_df) +
+  geom_vline(aes(xintercept = bonf_cutoff)) +
+  labs(x = "Maximum null distribution test statistics", y = "Density", title = "Permutation Cutoffs - 5K smoothed data") +
+  lims(y = c(0,1.4), x = c(2,7)) +
+  geom_text(aes(x = bonf_cutoff, y = 1, label = "Bonferroni"), angle = 90, vjust = 0) +
+  geom_hline(aes(yintercept = 0)) +
+  scale_fill_discrete("Task") +
+  scale_color_discrete("Task") +
+  theme_classic()
+# g4
 
 # >> 32k data ----
 model_obj <- readRDS("~/Desktop/500_103818_visit1_left_32k_classical_1000permutations_20210916.rds")
@@ -3008,13 +3122,13 @@ g2 <- reshape2::melt(max_tstats, value.name = "Tstats") %>%
   geom_vline(aes(xintercept = cutoff, color = Task), data = cutoffs_df) +
   geom_vline(aes(xintercept = bonf_cutoff_32k)) +
   labs(x = "Maximum null distribution test statistics", y = "Density", title = "Permutation Cutoffs - 32K data") +
-  lims(y = c(0,1.4)) +
+  lims(y = c(0,1.4), x = c(2,7)) +
   geom_text(aes(x = bonf_cutoff_32k, y = 1, label = "Bonferroni"), angle = 90, vjust = 0) +
   geom_hline(aes(yintercept = 0)) +
   scale_fill_discrete("Task") +
   scale_color_discrete("Task") +
   theme_classic()
-g2
+# g2
 
 # >> 32k smoothed data ----
 model_obj <- readRDS("~/Desktop/500_103818_visit1_left_32k_smoothed_FWHM5_classical_1000permutations_20210916.rds")
@@ -3048,20 +3162,20 @@ g3 <- reshape2::melt(max_tstats, value.name = "Tstats") %>%
   geom_vline(aes(xintercept = cutoff, color = Task), data = cutoffs_df) +
   geom_vline(aes(xintercept = bonf_cutoff_32k)) +
   labs(x = "Maximum null distribution test statistics", y = "Density", title = "Permutation Cutoffs - 32K smoothed data") +
-  lims(y = c(0,1.4)) +
+  lims(y = c(0,1.4),x = c(2,7)) +
   geom_text(aes(x = bonf_cutoff_32k, y = 1, label = "Bonferroni"), angle = 90, vjust = 0) +
   geom_hline(aes(yintercept = 0)) +
   scale_fill_discrete("Task") +
   scale_color_discrete("Task") +
   theme_classic()
-g3
+# g3
 
 # >> Put the three together ----
 library(gridExtra)
-g_all <- grid.arrange(g + theme(legend.position = 'none'),g2 + theme(legend.position = 'none'),g3 + theme(legend.position = 'none'), nrow = 1, ncol = 3)
+g_all <- grid.arrange(g + theme(legend.position = 'none'),g2 + theme(legend.position = 'none'),g4 + theme(legend.position = 'none'),g3 + theme(legend.position = 'none'), nrow = 2, ncol = 2)
 g_all
 
-ggsave(filename = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_permutation_cutoffs.png",plot = g_all, width = 14, height = 5)
+ggsave(filename = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots/05_permutation_cutoffs.png",plot = g_all, width = 10, height = 8)
 
 # FIGURE: Residual plot ----
 result <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/individual/PW/500_103818_visit1_left_5k_20210125.rds")
@@ -3080,15 +3194,15 @@ ciftiTools.setOption('wb_path','/Applications/workbench')
 plot(cifti_obj, hemisphere = 'left',idx = 1, view = 'lateral')
 
 # TABLE: Computation times ----
-bayes_single_dir <- "/Volumes/GoogleDrive/My Drive/danspen/BayesGLM_EM/HCP"
+bayes_single_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/experimental_inla"
 
 bayes_files <- list.files(bayes_single_dir, full.names = T) |> grep(pattern = ".rds", value = TRUE)
 
 single_subject_times <- sapply(bayes_files, function(bf) {
   read_obj <- readRDS(bf)
-  subject <- substring(bf, 57,62)
-  visit <- substring(bf, 64,69)
-  hem <- substring(bf, 71,75)
+  subject <- substring(bf, 91,96)
+  visit <- substring(bf, 98,103)
+  hem <- substring(bf, 105,109)
   hem <- sub("_","",hem)
   L_or_R <- toupper(substring(hem,1,1))
   out <- data.frame(
@@ -3097,7 +3211,7 @@ single_subject_times <- sapply(bayes_files, function(bf) {
     hem = hem,
     Bayesian_time = read_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$total_time,
     classical_time = read_obj$GLMs_classical[[paste0("cortex",L_or_R)]]$total_time,
-    em_time = read_obj$GLMs_EM[[paste0("cortex",L_or_R)]]$total_time,
+    # em_time = read_obj$GLMs_EM[[paste0("cortex",L_or_R)]]$total_time,
     overall_time = read_obj$total_time
   )
   return(out)
@@ -3114,7 +3228,7 @@ library(tidyverse)
 
 single_subj_df <-
   single_subject_times %>%
-  mutate(preprocessing_time = overall_time - Bayesian_time - em_time - classical_time) %>%
+  mutate(preprocessing_time = overall_time - Bayesian_time - classical_time) %>%
   pivot_longer(cols = -c("subject","visit","hem"),names_to = "Category", values_to = "Time") %>%
   mutate(Category = sub("_time","", Category)) %>%
   filter(Category != "em", Category != "overall") %>%
