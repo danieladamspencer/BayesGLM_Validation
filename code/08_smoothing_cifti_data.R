@@ -21,11 +21,13 @@
 # plot(correct_6mm_smooth, fname = "~/Desktop/correct_6mm_smoothing_103818_visit1_LR_idx1.png", surfL= surfL_fname, surfR= surfR_fname)
 
 # NOW TO CORRECTLY RUN THE SMOOTHING ----
-library(ciftiTools)
-ciftiTools.setOption('wb_path', "/Applications/workbench")
 load("/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan/subjects.Rdata")
-visit1_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan/visit1_data"
-for(subject in subjects) {
+library(parallel)
+cl <- makeCluster(10)
+parSapplyLB(cl, subjects, function(subject) {
+  library(ciftiTools)
+  ciftiTools.setOption('wb_path', "/Applications/workbench")
+  visit1_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan/visit1_data"
   surfL <- file.path(visit1_dir, subject,"MNINonLinear","fsaverage_LR32K",
                      paste0(subject,".L.midthickness.32k_fs_LR.surf.gii"))
   surfR <- file.path(visit1_dir, subject,"MNINonLinear","fsaverage_LR32K",
@@ -52,4 +54,5 @@ for(subject in subjects) {
                                       surf_FWHM = fwhm, vol_FWHM = fwhm,
                                       surfL_fname = surfL, surfR_fname = surfR)
   }
-}
+  return(NULL)
+})
