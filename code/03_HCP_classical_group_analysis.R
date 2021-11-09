@@ -13,7 +13,7 @@ average_estimates <- sapply(classical_estimates, function(hem_est) {
 saveRDS(average_estimates, "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/03_HCP_classical_group_PW_estimates.rds")
 
 # Average estimates by visit
-for(v in 1:2) {
+for(v in 1) {
   visit_estimates <- sapply(classical_estimates, function(ce) {
     visit_est <- ce[[paste0("visit",v)]]
     avg_visit_est <- apply(visit_est,1:2,mean)

@@ -1,14 +1,17 @@
 # This is a script for running the HCP data analysis
 # Main analysis ----
 library(ciftiTools)
-ciftiTools::ciftiTools.setOption("wb_path", "/Applications/workbench/bin_macosx64/wb_command") # Dan's Macbook Pro
-wb_cmd <- "/Applications/workbench/bin_macosx64/wb_command" # Dan's Macbook Pro
+ciftiTools::ciftiTools.setOption("wb_path", "/Applications/workbench")
+wb_cmd <- "/Applications/workbench"
 library(INLA)
 inla.setOption(pardiso.license = "~/licenses/pardiso.lic") # Dan's Macbook Pro
 library(BayesfMRI)
-main_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan" # Dan's Macbook Pro
-data_dir <- file.path(main_dir,"visit1_data") # Dan's Macbook Pro
-result_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan/5k_results/smoothed" # Dan's Macbook Pro
+main_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan" # Mac Pro
+# main_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan" # Dan's Macbook Pro
+data_dir <- file.path(main_dir,"visit1_data")
+# result_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan/5k_results/smoothed" # Dan's Macbook Pro
+# result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/permutations" # Dan's Macbook Pro
+result_dir <- "~/Desktop"
 load(file.path(main_dir,"subjects.Rdata")) # Macbook Pro
 tasks <- c('cue','lf','lh','rf','rh','t') # Task data frame columns
 names_tasks <- c('cue','left_foot','left_hand','right_foot','right_hand','tongue')
@@ -19,13 +22,13 @@ cols_list <- list(cols_LH, cols_RH)
 TR = 0.72 #temporal resolution of data
 thetas <- NULL # No starting values for precision parameters
 # subject <- subjects[1];visit <- 1;h <- 1
-# subjects <- subjects[1]
+subjects <- subjects[1]
 for(subject in subjects) {
   dir_s <- file.path(data_dir, subject, 'MNINonLinear', 'fsaverage_LR32k')
   fname_gifti_left <- file.path(dir_s, paste0(subject,'.L.midthickness.32k_fs_LR.surf.gii'))
   fname_gifti_right <- file.path(dir_s, paste0(subject,'.R.midthickness.32k_fs_LR.surf.gii'))
   for(visit in 1) {
-    for(fwhm in 2:10) {
+    for(fwhm in 6) {
       if(visit == 1) {
         dir1_s <- file.path(data_dir,subject, 'MNINonLinear', 'Results', 'tfMRI_MOTOR_LR')
         dir2_s <- file.path(data_dir,subject, 'MNINonLinear', 'Results', 'tfMRI_MOTOR_RL')
@@ -39,7 +42,7 @@ for(subject in subjects) {
         fname2_ts <- file.path(dir2_s,'tfMRI_MOTOR_RL_Atlas.dtseries.nii')
       }
       #analyze hemispheres separately due to different in set of tasks
-      for(h in c(1,2)){
+      for(h in c(1)){
 
         #h=1 -- left hemisphere
         #h=2 -- right hemisphere
@@ -85,14 +88,14 @@ for(subject in subjects) {
                                      ar_smooth = 6,
                                      session_names = c('LR','RL'), # Multiple sessions
                                      # session_names = c('LR'), # single session
-                                     resamp_res = 5000, # Don't forget to change this
+                                     resamp_res = NULL, # Don't forget to change this
                                      num.threads = 6, # Remember the tradeoff here (speed/memory) 4 to 6 threads seems optimal based on testing
                                      verbose = TRUE,
                                      outfile = NULL,
                                      return_INLA_result = T,
                                      avg_sessions = T,
                                      trim_INLA = T,
-                                     num_permute = 0)
+                                     num_permute = 1000)
         total_time <- proc.time()[3] - start_time
         result_svh$total_time <- total_time
         saveRDS(result_svh, file=file.path(result_dir,paste0("500_",subject,"_visit",visit,"_",hem,"_5k_classical_FWHM",fwhm,"_",format(Sys.Date(),"%Y%m%d"),".rds")))

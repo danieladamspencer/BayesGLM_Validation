@@ -2,6 +2,194 @@
 # manuscript. If opening this in RStudio, use Ctrl + O to view the script
 # outline, which will make this script much more navigable.
 
+# TABLE 1: Computation times ----
+bayes_single_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/experimental_inla"
+
+bayes_files <- list.files(bayes_single_dir, full.names = T) |> grep(pattern = ".rds", value = TRUE) |> grep(pattern = "500_", value = T)
+
+single_subject_times <- sapply(bayes_files, function(bf) {
+  read_obj <- readRDS(bf)
+  subject <- substring(bf, 91,96)
+  visit <- substring(bf, 98,103)
+  hem <- substring(bf, 105,109)
+  hem <- sub("_","",hem)
+  L_or_R <- toupper(substring(hem,1,1))
+  out <- data.frame(
+    subject = subject,
+    visit = visit,
+    hem = hem,
+    Bayesian_time = read_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$total_time,
+    classical_time = read_obj$GLMs_classical[[paste0("cortex",L_or_R)]]$total_time,
+    # em_time = read_obj$GLMs_EM[[paste0("cortex",L_or_R)]]$total_time,
+    overall_time = read_obj$total_time
+  )
+  return(out)
+}, simplify = F)
+
+saveRDS(single_subject_times,file = "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/05_single_subject_times_PW.rds")
+
+# Classical smoothed times
+result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
+result_files <- list.files(result_dir,full.names = TRUE) |>
+  grep(pattern = "FWHM6", value = T)
+result_files <- grep(".rds", result_files, value = T)
+
+classical_times <- sapply(result_files, function(x) {
+  y <- readRDS(x)
+  return(y$GLMs_classical[[which(!sapply(y$GLMs_classical,is.null))]]$total_time)
+})
+mean(classical_times/60) #0.1190365
+sd(classical_times/60) #0.05329523
+
+# Load the Bayesian subject times
+single_subject_times <- readRDS(file.path(bayes_single_dir,"05_single_subject_times_PW.rds"))
+
+single_subject_times <- Reduce(rbind,single_subject_times)
+names(single_subject_times)[4] <- "Bayesian_time"
+
+library(tidyverse)
+
+# Find out which subjects don't have both hemispheres of data
+single_subject_times %>%
+  group_by(subject) %>%
+  tally %>%
+  filter(n != 2)
+# A tibble: 1 × 2
+# subject     n
+# <chr>   <int>
+#   1 250427      1
+
+# single_subj_df <-
+single_subject_times %>%
+  filter(subject != "250427") %>%
+  pivot_longer(cols = ends_with("_time"), names_to = "model", values_to = "Time") %>%
+  group_by(subject, visit, model) %>%
+  summarize(Time = sum(Time)) %>%
+  pivot_wider(names_from = model, values_from = Time) %>%
+  mutate(preprocessing_time = overall_time - Bayesian_time - classical_time) %>%
+  pivot_longer(cols = -c("subject","visit"),names_to = "Category", values_to = "Time") %>%
+  mutate(Category = sub("_time","", Category)) %>%
+  filter(Category != "em", Category != "overall") %>%
+  group_by(Category) %>%
+  summarize(Mean = round(mean(Time)/60,3), SD = round(sd(Time)/60,3)) %>%
+  ungroup() %>%
+  mutate(Mean_SD = paste0(Mean," (",SD,")")) %>%
+  select(-Mean,-SD) %>%
+  pivot_wider(names_from = Category, values_from = Mean_SD)
+
+group_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/subsamples"
+group_files <- list.files(group_dir, full.names = T) |>
+  grep(pattern = "501_HCP_", value = TRUE) #|>
+# grep(pattern = "_visit1_", value = TRUE) |>
+# grep(pattern = "_sample", value = TRUE) #|>
+# grep(pattern = "_thresh0_", value = TRUE)
+
+subsample_times <- sapply(paste0(c(10,20,30),"subj"), function(N) {
+  sapply(paste0("sample",1:10), function(sample_num) {
+    sapply(paste0("visit",1:2), function(visit_num) {
+      sapply(c("left","right"), function(hem) {
+        sapply(paste0("thresh",c("0","05","1")), function(thr) {
+          gf <- grep(paste0(N,"_",sample_num,"_",visit_num,"_result_",hem,"_", thr),
+                     group_files, value = T)
+          if(length(gf) > 1) gf <- gf[1]
+          return(readRDS(gf)$total_time)
+        }, simplify = F)
+      }, simplify = F)
+    }, simplify = F)
+  }, simplify = F)
+}, simplify = F)
+
+subsample_df <- reshape2::melt(subsample_times, value.name = "Time") %>%
+  rename(threshold = L5,
+         hem = L4,
+         visit_num = L3,
+         sample_num = L2,
+         num_subjects = L1)
+
+group_times <- sapply(paste0("visit",1:2), function(visit_num) {
+  sapply(c("left","right"), function(hem) {
+    sapply(paste0("thresh",c("0","05","1")), function(thr) {
+      gf <- grep(paste0("45subj_result_",hem,"_", thr),
+                 group_files, value = T)
+      if(length(gf) > 1) gf <- gf[1]
+      return(readRDS(gf)$total_time)
+    }, simplify = F)
+  }, simplify = F)
+}, simplify = F)
+
+group_df <- reshape2::melt(group_times, value.name = "Time") %>%
+  rename(
+    threshold = L3,
+    hem = L2,
+    visit_num = L1
+  ) %>%
+  mutate(num_subjects = "45subj", sample_num = "sample1")
+
+group_times_df <- full_join(subsample_df, group_df)
+
+group_time_summary <- group_times_df %>%
+  group_by(sample_num, num_subjects, visit_num, threshold) %>%
+  summarize(Time = sum(Time)) %>%
+  group_by(num_subjects) %>%
+  summarize(Mean = round(mean(Time/60),2),
+            SD = round(sd(Time/60), 2))
+
+paste(group_time_summary$Mean, collapse = " & ")
+paste(group_time_summary$SD, collapse = " & ")
+
+group_times <- sapply(group_files, function(gf) {
+  num_subjects <- substring(gf,100,101)
+  sample_num <- substring(gf, 113, 114)
+  sample_num <- sub("_","", sample_num)
+  hem <- substring(gf, 129, 133)
+  hem <- sub("_","", hem)
+  if(hem == "righ") hem <- "right"
+  total_time <- readRDS(gf)$total_time
+  out <- data.frame(N = num_subjects, Time = total_time, hem = hem, sample_num = sample_num)
+  return(out)
+}, simplify = F)
+
+group_times <- Reduce(rbind,group_times)
+
+group_times %>%
+  filter(N == "30", hem == "right", sample_num == "10")
+group_by(N, hem, sample_num) %>%
+  tally %>%
+  filter(n != 6)
+
+group_df <-
+  group_times %>%
+  mutate(N = paste0("N = ",N)) %>%
+  group_by(N) %>%
+  summarize(Mean = round(mean(Time)/60,2), SD = round(sd(Time)/60,2),
+            Mean_SD = paste0(Mean," (",SD,")")) %>%
+  select(-Mean,-SD) %>%
+  pivot_wider(names_from = N, values_from = Mean_SD)
+
+group45_files <- list.files(group_dir, full.names = TRUE) |>
+  grep(pattern = "45subj", value = T)
+# grep(pattern = "_202104", value = T)
+
+group45_times <- sapply(group45_files, function(g45) {
+  out <- data.frame(
+    N = 45,
+    Time = readRDS(g45)$total_time
+  )
+  return(out)
+}, simplify = F)
+
+group45_times <- Reduce(rbind, group45_times)
+
+group45_df <-
+  group45_times %>%
+  mutate(N = paste0("N = ",N)) %>%
+  group_by(N) %>%
+  summarize(Mean = round(mean(Time)/60,2), SD = round(sd(Time)/60,2),
+            Mean_SD = paste0(Mean," (",SD,")")) %>%
+  select(-Mean,-SD) %>%
+  pivot_wider(names_from = N, values_from = Mean_SD)
+
+
 # FIGURE 2: Single-subject estimates ----
 library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench/')
@@ -365,7 +553,7 @@ for(subject in subjects) {
     }
   }
 }
-# saveRDS(avg_estimates_classical, file.path(result_dir,"05_avg_classical_estimates.rds"))
+saveRDS(avg_estimates_classical, file.path(result_dir,"05_avg_classical_estimates.rds"))
 avg_estimates_classical <- readRDS(file.path(result_dir,"05_avg_classical_estimates.rds"))
 # >> Classical (unsmoothed) ----
 result_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/classical"
@@ -1610,7 +1798,7 @@ for(i in c(2,3)) {
 }
 
 # >>>> Classical ----
-group_results_classical <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/group/502_HCP_classical_group_PW_estimates_visit1.rds")
+group_results_classical <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/group/03_HCP_classical_group_PW_estimates_visit1.rds")
 cifti_classical <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_data/603_cifti_5k_template_whole.rds")
 cifti_classical$data$cortex_left <- as.matrix(group_results_classical$left)
 cifti_classical$data$cortex_right <- as.matrix(group_results_classical$right)
@@ -1766,7 +1954,7 @@ plot(cifti_unsmoothed, colors = col_pal, color_mode = "qualitative",
 # >> MSE ----
 library(tidyverse)
 truth <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/502_HCP_classical_group_PW_estimates_visit2.rds")
-classical_est <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/group/502_HCP_classical_group_PW_estimates_visit1.rds")
+classical_est <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/group/03_HCP_classical_group_PW_estimates_visit1.rds")
 classical_subsample_est <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/group/03_HCP_classical_subsample_estimates.rds")
 classical_est_unsmoothed <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/502_HCP_classical_group_PW_estimates_visit1.rds")
 classical_subsample_est_unsmoothed <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/group/502_HCP_classical_subsample_estimates.rds")
@@ -1974,7 +2162,7 @@ ggsave(file.path(plot_dir,"607_group_mse.png"),plot = mse_plot, width = 8, heigh
 library(tidyverse)
 # Calculate the correlation for the Group estimates
 truth <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/502_HCP_classical_group_PW_estimates_visit2.rds")
-classical_est <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/group/502_HCP_classical_group_PW_estimates_visit1.rds")
+classical_est <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/group/03_HCP_classical_group_PW_estimates_visit1.rds")
 classical_subsample_est <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/group/03_HCP_classical_subsample_estimates.rds")
 classical_est_unsmoothed <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/502_HCP_classical_group_PW_estimates_visit1.rds")
 classical_subsample_est_unsmoothed <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/group/502_HCP_classical_subsample_estimates.rds")
@@ -2823,7 +3011,7 @@ library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
 light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
 col_pal <- c(light_orange,"red","purple")
-result <- readRDS("~/Desktop/500_114823_visit1_left_5k_classical_FWHM6_20211006.rds")
+result <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/permutations/500_114823_visit1_left_5k_classical_FWHM6_20211101.rds")
 library(BayesfMRI)
 active_perm <- sapply(c(0,0.5,1), function(thr) {
   id_out <- id_activations_cifti(result,alpha = 0.01,method = 'classical',threshold = thr,correction = 'permutation')
@@ -3772,7 +3960,7 @@ classical_visit1_5k <- sapply(subjects_smooth, function(subject) {
   return(class_visit1_est)
 }, simplify = FALSE)
 
-classical_visit1_5k_smoothed <- sapply(seq(3,8), function(fwhm) {
+classical_visit1_5k_smoothed <- sapply(seq(3,10), function(fwhm) {
   sapply(subjects_smooth, function(subject) {
     print(paste(subject,fwhm))
     classical_file_left <- grep(paste0(subject,"_visit1_left"), smoothed_files, value = T) |> grep(pattern = paste0("FWHM",fwhm), value = T)
@@ -3786,7 +3974,7 @@ classical_visit1_5k_smoothed <- sapply(seq(3,8), function(fwhm) {
     return(class_visit1_est)
   }, simplify = FALSE)
 }, simplify = F)
-names(classical_visit1_5k_smoothed) <- paste0("FWHM",seq(3,8))
+names(classical_visit1_5k_smoothed) <- paste0("FWHM",seq(3,10))
 
 classical_visit1_5k_smoothed$FWHM0 <- classical_visit1_5k
 
@@ -3841,7 +4029,7 @@ smooth_cor_plot <-
   reshape2::melt(classical_cor_5k, value.name = "Correlation") %>%
   mutate(variable = sub("_"," ", variable),
          FWHM = sub("FWHM","",L1),
-         FWHM = factor(FWHM)) %>%
+         FWHM = factor(FWHM, levels = as.character(0:10))) %>%
   ggplot() +
   geom_boxplot(aes(x = FWHM, y = Correlation, color = FWHM)) +
   labs(
@@ -4101,7 +4289,8 @@ g <- reshape2::melt(max_tstats, value.name = "Tstats") %>%
 # g
 
 # >> 5k smoothed data ----
-model_obj <- readRDS("~/Desktop/500_103818_visit1_left_5k_classical_FWHM6_20210928.rds")
+# model_obj <- readRDS("~/Desktop/500_103818_visit1_left_5k_classical_FWHM6_20210928.rds")
+model_obj <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/permutations/500_103818_visit1_left_5k_classical_FWHM6_20211101.rds")
 model_obj <- model_obj$GLMs_classical$cortexL
 sess_ind <- 3
 beta_est <- model_obj[[sess_ind]]$estimates
@@ -4243,178 +4432,6 @@ library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
 plot(cifti_obj, hemisphere = 'left',idx = 1, view = 'lateral')
 
-# TABLE: Computation times ----
-bayes_single_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/experimental_inla"
-
-bayes_files <- list.files(bayes_single_dir, full.names = T) |> grep(pattern = ".rds", value = TRUE) |> grep(pattern = "500_", value = T)
-
-single_subject_times <- sapply(bayes_files, function(bf) {
-  read_obj <- readRDS(bf)
-  subject <- substring(bf, 91,96)
-  visit <- substring(bf, 98,103)
-  hem <- substring(bf, 105,109)
-  hem <- sub("_","",hem)
-  L_or_R <- toupper(substring(hem,1,1))
-  out <- data.frame(
-    subject = subject,
-    visit = visit,
-    hem = hem,
-    Bayesian_time = read_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$total_time,
-    classical_time = read_obj$GLMs_classical[[paste0("cortex",L_or_R)]]$total_time,
-    # em_time = read_obj$GLMs_EM[[paste0("cortex",L_or_R)]]$total_time,
-    overall_time = read_obj$total_time
-  )
-  return(out)
-}, simplify = F)
-
-saveRDS(single_subject_times,file = "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/05_single_subject_times_PW.rds")
-
-single_subject_times <- readRDS(file.path(bayes_single_dir,"05_single_subject_times_PW.rds"))
-
-single_subject_times <- Reduce(rbind,single_subject_times)
-names(single_subject_times)[4] <- "Bayesian_time"
-
-library(tidyverse)
-
-# Find out which subjects don't have both hemispheres of data
-single_subject_times %>%
-  group_by(subject) %>%
-  tally %>%
-  filter(n != 2)
-# A tibble: 1 × 2
-# subject     n
-# <chr>   <int>
-#   1 250427      1
-
-# single_subj_df <-
-  single_subject_times %>%
-  filter(subject != "250427") %>%
-  pivot_longer(cols = ends_with("_time"), names_to = "model", values_to = "Time") %>%
-  group_by(subject, visit, model) %>%
-  summarize(Time = sum(Time)) %>%
-  pivot_wider(names_from = model, values_from = Time) %>%
-  mutate(preprocessing_time = overall_time - Bayesian_time - classical_time) %>%
-  pivot_longer(cols = -c("subject","visit"),names_to = "Category", values_to = "Time") %>%
-  mutate(Category = sub("_time","", Category)) %>%
-  filter(Category != "em", Category != "overall") %>%
-  group_by(Category) %>%
-  summarize(Mean = round(mean(Time)/60,3), SD = round(sd(Time)/60,3)) %>%
-  ungroup() %>%
-  mutate(Mean_SD = paste0(Mean," (",SD,")")) %>%
-  select(-Mean,-SD) %>%
-  pivot_wider(names_from = Category, values_from = Mean_SD)
-
-group_dir <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/subsamples"
-group_files <- list.files(group_dir, full.names = T) |>
-  grep(pattern = "501_HCP_", value = TRUE) #|>
-  # grep(pattern = "_visit1_", value = TRUE) |>
-  # grep(pattern = "_sample", value = TRUE) #|>
-  # grep(pattern = "_thresh0_", value = TRUE)
-
-subsample_times <- sapply(paste0(c(10,20,30),"subj"), function(N) {
-  sapply(paste0("sample",1:10), function(sample_num) {
-    sapply(paste0("visit",1:2), function(visit_num) {
-      sapply(c("left","right"), function(hem) {
-        sapply(paste0("thresh",c("0","05","1")), function(thr) {
-          gf <- grep(paste0(N,"_",sample_num,"_",visit_num,"_result_",hem,"_", thr),
-                     group_files, value = T)
-          if(length(gf) > 1) gf <- gf[1]
-          return(readRDS(gf)$total_time)
-        }, simplify = F)
-      }, simplify = F)
-    }, simplify = F)
-  }, simplify = F)
-}, simplify = F)
-
-subsample_df <- reshape2::melt(subsample_times, value.name = "Time") %>%
-  rename(threshold = L5,
-         hem = L4,
-         visit_num = L3,
-         sample_num = L2,
-         num_subjects = L1)
-
-group_times <- sapply(paste0("visit",1:2), function(visit_num) {
-  sapply(c("left","right"), function(hem) {
-    sapply(paste0("thresh",c("0","05","1")), function(thr) {
-      gf <- grep(paste0("45subj_result_",hem,"_", thr),
-                 group_files, value = T)
-      if(length(gf) > 1) gf <- gf[1]
-      return(readRDS(gf)$total_time)
-    }, simplify = F)
-  }, simplify = F)
-}, simplify = F)
-
-group_df <- reshape2::melt(group_times, value.name = "Time") %>%
-  rename(
-    threshold = L3,
-    hem = L2,
-    visit_num = L1
-  ) %>%
-  mutate(num_subjects = "45subj", sample_num = "sample1")
-
-group_times_df <- full_join(subsample_df, group_df)
-
-group_time_summary <- group_times_df %>%
-  group_by(sample_num, num_subjects, visit_num, threshold) %>%
-  summarize(Time = sum(Time)) %>%
-  group_by(num_subjects) %>%
-  summarize(Mean = round(mean(Time/60),2),
-            SD = round(sd(Time/60), 2))
-
-paste(group_time_summary$Mean, collapse = " & ")
-paste(group_time_summary$SD, collapse = " & ")
-
-group_times <- sapply(group_files, function(gf) {
-  num_subjects <- substring(gf,100,101)
-  sample_num <- substring(gf, 113, 114)
-  sample_num <- sub("_","", sample_num)
-  hem <- substring(gf, 129, 133)
-  hem <- sub("_","", hem)
-  if(hem == "righ") hem <- "right"
-  total_time <- readRDS(gf)$total_time
-  out <- data.frame(N = num_subjects, Time = total_time, hem = hem, sample_num = sample_num)
-  return(out)
-}, simplify = F)
-
-group_times <- Reduce(rbind,group_times)
-
-group_times %>%
-  filter(N == "30", hem == "right", sample_num == "10")
-  group_by(N, hem, sample_num) %>%
-  tally %>%
-  filter(n != 6)
-
-group_df <-
-  group_times %>%
-  mutate(N = paste0("N = ",N)) %>%
-  group_by(N) %>%
-  summarize(Mean = round(mean(Time)/60,2), SD = round(sd(Time)/60,2),
-            Mean_SD = paste0(Mean," (",SD,")")) %>%
-  select(-Mean,-SD) %>%
-  pivot_wider(names_from = N, values_from = Mean_SD)
-
-group45_files <- list.files(group_dir, full.names = TRUE) |>
-  grep(pattern = "45subj", value = T)
-  # grep(pattern = "_202104", value = T)
-
-group45_times <- sapply(group45_files, function(g45) {
-  out <- data.frame(
-    N = 45,
-    Time = readRDS(g45)$total_time
-  )
-  return(out)
-}, simplify = F)
-
-group45_times <- Reduce(rbind, group45_times)
-
-group45_df <-
-  group45_times %>%
-  mutate(N = paste0("N = ",N)) %>%
-  group_by(N) %>%
-  summarize(Mean = round(mean(Time)/60,2), SD = round(sd(Time)/60,2),
-            Mean_SD = paste0(Mean," (",SD,")")) %>%
-  select(-Mean,-SD) %>%
-  pivot_wider(names_from = N, values_from = Mean_SD)
 
 # FIGURE: Comparison of smoothed/unsmoothed 5k/32k results ----
 result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Gambling_Task_Dan"
@@ -4438,7 +4455,7 @@ cifti_list <- list(
     "32k_classical_gambling", subject_files, value = T
   ))$betas_classical$LR,
   classical_32k_smoothed = readRDS(
-    grep("32k_classical_smoothed_gambling", subject_files, value = T)
+    grep("32k_smoothed_classical_gambling", subject_files, value = T)
   )$betas_classical$LR
 )
 

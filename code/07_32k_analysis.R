@@ -86,21 +86,21 @@ TR <- 0.72
 do_smooth <- TRUE
 subject <- subjects[1]; visit <- 1; hem <- 'left'; run <- "LR"
 # subjects <- subjects[c(1,2,4)]
-for(subject in subjects) {
+# for(subject in subjects) {
   subject_surface_files <-
     list.files(file.path(surfaces_dir, subject, "MNINonLinear/fsaverage_LR32k"),
                full.names = T)
   subject_surface_left <- grep("\\.L\\.", subject_surface_files, value = T)
   subject_surface_right <- grep("\\.R\\.", subject_surface_files, value = T)
-  for(visit in 1) {
+  # for(visit in 1) {
     data_dir_s <- file.path(data_dir, subject)
     if(visit == 2) data_dir_s <- file.path(data_dir,"retest",subject)
     # Run hemispheres separately
-    for(hem in c("left")) {
+    # for(hem in c("left")) {
       cifti_fnames <- character()
       onsets <- list()
       mvmnt <- list()
-      for(run in c("LR","RL")) {
+      # for(run in c("LR","RL")) {
         run_dir <- file.path(
           data_dir_s,
           paste0("MNINonLinear/Results/tfMRI_GAMBLING_", run))
@@ -127,8 +127,8 @@ for(subject in subjects) {
           smooth_cifti(
             x = run_cifti_fname,
             cifti_target_fname = smoothed_fname,
-            surf_FWHM = 5,
-            vol_FWHM = 5,
+            surf_FWHM = 6,
+            vol_FWHM = 6,
             surfL_fname = subject_surface_left,
             surfR_fname = subject_surface_right,
             cerebellum_fname = NULL,
@@ -142,23 +142,24 @@ for(subject in subjects) {
         cifti_fnames <- c(cifti_fnames, run_cifti_fname)
         onsets[[run]] <- run_onsets
         mvmnt[[run]] <- as.matrix(run_movement)
-      }
+      # }
       # Set up analysis with BayesGLM_cifti
       result_svh <- BayesGLM_cifti(cifti_fname = cifti_fnames,
                                    surfL_fname = subject_surface_left,
                                    surfR_fname = subject_surface_right,
                                    brainstructures = hem,
                                    design = NULL,
-                                   onsets = onsets,
+                                   onsets = onsets$LR,
                                    TR = TR,
-                                   nuisance = mvmnt,
+                                   nuisance = mvmnt$LR,
                                    nuisance_include = c('drift','dHRF'),
                                    scale_BOLD = TRUE,
                                    scale_design = TRUE,
                                    GLM_method = 'classical',
                                    ar_order = 6,
                                    ar_smooth = 6,
-                                   session_names = c('LR','RL'), # Multiple sessions
+                                   # session_names = c('LR','RL'), # Multiple sessions
+                                   session_names = "LR",
                                    resamp_res = NULL, # Don't forget to change this
                                    num.threads = 6, # Remember the tradeoff here (speed/memory) 4 to 6 threads seems optimal based on testing
                                    verbose = TRUE,
@@ -166,7 +167,7 @@ for(subject in subjects) {
                                    return_INLA_result = T,
                                    avg_sessions = T,
                                    trim_INLA = T)
-      saveRDS(result_svh, file = file.path("/Volumes/Lab_Data_Drive/users/danspen/HCP_Gambling_Task_Dan", paste0("07_32k_smoothed_classical_gambling_subject",subject,"_visit",visit,"_",hem,"_",format(Sys.Date(),"%Y%m%d"),".rds")))
-    }
-  }
-}
+      saveRDS(result_svh, file = file.path("/Volumes/GoogleDrive/My Drive/danspen/HCP_Gambling_Task_Dan", paste0("07_32k_smoothed_classical_gambling_subject",subject,"_visit",visit,"_",hem,"_",format(Sys.Date(),"%Y%m%d"),".rds")))
+    # }
+  # }
+# }
