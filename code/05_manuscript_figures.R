@@ -1573,6 +1573,7 @@ for(subject in subjects) {
 
 
 # FIGURE 7: Dice Overlap CIs and Dice x Area scatterplot ----
+library(tidyverse)
 # >> Dice Overlap CIs ----
 bstrap_CIs <- function(x, num_resamp = 5000, alpha = 0.05) {
   bsamp_means <- sapply(seq(num_resamp), function(s){
@@ -3607,7 +3608,7 @@ library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
 library(BayesfMRI)
 main_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results"
-result_dir <- file.path(main_dir, "smoothed/single_session")
+result_dir <- file.path(main_dir, "smoothed")
 plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
 load(file.path(main_dir,"../subjects.RData"))
 subjects <- subjects[c(1,2,4)]
@@ -3636,7 +3637,7 @@ library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
 library(BayesfMRI)
 main_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results"
-result_dir <- file.path(main_dir, "smoothed/single_session")
+result_dir <- file.path(main_dir, "smoothed")
 plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
 subject_files <- list.files(result_dir,full.names = T) |>
   grep(pattern = "FWHM6", value = T) |>
@@ -3688,8 +3689,8 @@ subject <- "103818"
 
 result_obj_left <- readRDS(grep(pattern = "left", subject_files, value = T))
 result_obj_right <- readRDS(grep(pattern = "right", subject_files, value = T))
-plot_obj <- combine_xifti(result_obj_left$betas_classical$LR,
-                          result_obj_right$betas_classical$LR)
+plot_obj <- combine_xifti(result_obj_left$betas_classical$avg,
+                          result_obj_right$betas_classical$avg)
 for(task_idx in c(1,4)) {
   plot(plot_obj, zlim = c(-1,1), idx = task_idx, legend_embed = F,
        fname = file.path(plot_dir,
@@ -3879,8 +3880,8 @@ for(ti in task_idx) {
   }
 }
 
-# FIGURE H.15: Single-session activations ----
-result_dir_classical <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/single_session"
+# FIGURE E.10: Single-run activations ----
+result_dir_classical <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
 plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
 library(BayesfMRI)
 library(ciftiTools)
@@ -3893,11 +3894,13 @@ subject <- "103818"
 # >> Classical ----
 subject_files <- grep(pattern = "103818",
                       list.files(result_dir_classical, full.names = TRUE),
-                      value = TRUE)
+                      value = TRUE) |>
+  grep(pattern = "FWHM6", value = T) |>
+  grep(pattern = "visit1", value = T)
 left_obj <- readRDS(grep("left",subject_files, value = T))
 left_cifti <- left_obj$betas_classical$LR
 left_active <- sapply(c(0,0.5,1), function(thr) {
-  id_activations_cifti(left_obj,alpha = 0.01,method = 'classical',threshold = thr)
+  id_activations_cifti(left_obj,alpha = 0.01,method = 'classical',threshold = thr,session_name = "LR")
 }, simplify = F)
 left_active <- left_active[[1]]$activations$cortexL$active +
   left_active[[2]]$activations$cortexL$active +
@@ -3907,7 +3910,7 @@ left_cifti$data$cortex_left <- left_active
 right_obj <- readRDS(grep("right",subject_files, value = T))
 right_cifti <- right_obj$betas_classical$LR
 right_active <- sapply(c(0,0.5,1), function(thr) {
-  id_activations_cifti(right_obj,alpha = 0.01,method = 'classical',threshold = thr)
+  id_activations_cifti(right_obj,alpha = 0.01,method = 'classical',threshold = thr, session_name = "LR")
 }, simplify = F)
 right_active <- right_active[[1]]$activations$cortexR$active +
   right_active[[2]]$activations$cortexR$active +
@@ -3935,6 +3938,66 @@ for(task_idx in c(2,3)) {
                                   task_names[task_idx],"_activations.png")))
   }
 }
+
+# FIGURE E.11: Two-run activations ----
+result_dir_classical <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
+plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
+library(BayesfMRI)
+library(ciftiTools)
+ciftiTools.setOption('wb_path',"/Applications/workbench")
+light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
+col_pal <- c(light_orange,"red","purple")
+task_names <- c("cue","foot","hand","tongue")
+subject <- "103818"
+# >> Bayesian ----
+# >> Classical ----
+subject_files <- grep(pattern = "103818",
+                      list.files(result_dir_classical, full.names = TRUE),
+                      value = TRUE) |>
+  grep(pattern = "FWHM6", value = T) |>
+  grep(pattern = "visit1", value = T)
+left_obj <- readRDS(grep("left",subject_files, value = T))
+left_cifti <- left_obj$betas_classical$avg
+left_active <- sapply(c(0,0.5,1), function(thr) {
+  id_activations_cifti(left_obj,alpha = 0.01,method = 'classical',threshold = thr)
+}, simplify = F)
+left_active <- left_active[[1]]$activations$cortexL$active +
+  left_active[[2]]$activations$cortexL$active +
+  left_active[[3]]$activations$cortexL$active
+left_active[left_active == 0] <- NA
+left_cifti$data$cortex_left <- left_active
+right_obj <- readRDS(grep("right",subject_files, value = T))
+right_cifti <- right_obj$betas_classical$avg
+right_active <- sapply(c(0,0.5,1), function(thr) {
+  id_activations_cifti(right_obj,alpha = 0.01,method = 'classical',threshold = thr)
+}, simplify = F)
+right_active <- right_active[[1]]$activations$cortexR$active +
+  right_active[[2]]$activations$cortexR$active +
+  right_active[[3]]$activations$cortexR$active
+right_active[right_active == 0] <- NA
+right_cifti$data$cortex_right <- right_active
+plot_obj <- combine_xifti(left_cifti, right_cifti)
+
+for(task_idx in c(1,4)) {
+  plot(plot_obj, idx = task_idx, legend_embed = F, color_mode = "qualitative",
+       colors = col_pal,
+       fname = file.path(plot_dir,
+                         paste0("607_classical_",subject,"_visit1_",
+                                task_names[task_idx],"_activations.png")))
+}
+
+for(task_idx in c(2,3)) {
+  for(hem in c("left","right")) {
+    other_hem <- grep(hem, c("left","right"), value = T, invert = T)
+    plot(plot_obj, idx = task_idx, legend_embed = F, colors = col_pal,
+         hemisphere = hem, color_mode = "qualitative",
+         fname = file.path(plot_dir,
+                           paste0("607_classical_",subject,"_visit1_",
+                                  other_hem,"_",
+                                  task_names[task_idx],"_activations.png")))
+  }
+}
+
 
 # FIGURE: Correlations boxplot for smoothed classical results ----
 classical_result_dir_5k <- "/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/individual/PW/classical"
@@ -4446,7 +4509,7 @@ cifti_list <- list(
     "5k_Bayes_classical_gambling", subject_files, value = T
   ), value = T))$betas_classical$LR,
   classical_5k_smoothed = readRDS(
-    grep("5k_classical_smoothed_gambling", subject_files, value = T)
+    grep("5k_smoothed_classical_gambling", subject_files, value = T)
   )$betas_classical$LR,
   bayes_32k = readRDS(grep(
     "32k_Bayes_classical_gambling", subject_files, value = T

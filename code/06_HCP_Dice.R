@@ -85,16 +85,16 @@ for(threshold in c(0,0.5,1)) {
       visit_exc[[v]] <- Reduce(rbind,hems_exc)
     }
     # Calculate the Dice coefficient for each task
-    subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2) / mean(c(sum(v1),sum(v2))) },
-                                    v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
-                                    v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
-    # subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2)}, # For overlap size
-                                    # v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
-                                    # v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
+    # subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2) / mean(c(sum(v1),sum(v2))) },
+    #                                 v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
+    #                                 v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
+    subjects_dice[[subj]] <- mapply(function(v1,v2) {sum(v1 * v2)}, # For overlap size
+    v1 = split(visit_exc[[1]],col(visit_exc[[1]])),
+    v2 = split(visit_exc[[2]],col(visit_exc[[2]])))
   }
   all_dice <- Reduce(rbind, subjects_dice)
-  saveRDS(all_dice, paste0("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/06_classical_FWER_Dice_coefficient_PW_threshold",threshold,".rds"))
-  # saveRDS(all_dice, paste0("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/06_classical_FWER_overlap_size_PW_threshold",threshold,".rds"))
+  # saveRDS(all_dice, paste0("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/06_classical_FWER_Dice_coefficient_PW_threshold",threshold,".rds"))
+  saveRDS(all_dice, paste0("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_results/5k_results/06_classical_FWER_overlap_size_PW_threshold",threshold,".rds"))
 }
 #
 # # # Plot the Dice Coefficients ----

@@ -160,14 +160,14 @@ subject <- subjects[1]; visit <- 1; hem <- 'left'; run <- "LR"
                                    ar_smooth = 6,
                                    # session_names = c('LR','RL'), # Multiple sessions
                                    session_names = "LR",
-                                   resamp_res = NULL, # Don't forget to change this
+                                   resamp_res = 5000, # Don't forget to change this
                                    num.threads = 6, # Remember the tradeoff here (speed/memory) 4 to 6 threads seems optimal based on testing
                                    verbose = TRUE,
                                    outfile = NULL,
                                    return_INLA_result = T,
                                    avg_sessions = T,
                                    trim_INLA = T)
-      saveRDS(result_svh, file = file.path("/Volumes/GoogleDrive/My Drive/danspen/HCP_Gambling_Task_Dan", paste0("07_32k_smoothed_classical_gambling_subject",subject,"_visit",visit,"_",hem,"_",format(Sys.Date(),"%Y%m%d"),".rds")))
+      saveRDS(result_svh, file = file.path("/Volumes/GoogleDrive/My Drive/danspen/HCP_Gambling_Task_Dan", paste0("07_5k_smoothed_classical_gambling_subject",subject,"_visit",visit,"_",hem,"_",format(Sys.Date(),"%Y%m%d"),".rds")))
     # }
   # }
 # }
