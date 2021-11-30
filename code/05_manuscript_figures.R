@@ -4213,7 +4213,7 @@ ggsave(filename = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validati
 library(Matrix)
 library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
-classical_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
+classical_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/incorrectly_smoothed"
 result_files <- list.files(classical_dir, full.names = TRUE) |>
   grep(pattern = "FWHM6", value = TRUE) |>
   grep(pattern = "Bayes", value = TRUE) |>

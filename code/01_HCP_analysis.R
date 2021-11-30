@@ -11,7 +11,7 @@ main_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan" # Mac Pro
 data_dir <- file.path(main_dir,"visit1_data")
 # result_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan/5k_results/smoothed" # Dan's Macbook Pro
 # result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/permutations" # Dan's Macbook Pro
-result_dir <- "~/Desktop"
+result_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
 load(file.path(main_dir,"subjects.Rdata")) # Macbook Pro
 tasks <- c('cue','lf','lh','rf','rh','t') # Task data frame columns
 names_tasks <- c('cue','left_foot','left_hand','right_foot','right_hand','tongue')
@@ -42,7 +42,7 @@ for(subject in subjects) {
         fname2_ts <- file.path(dir2_s,'tfMRI_MOTOR_RL_Atlas.dtseries.nii')
       }
       #analyze hemispheres separately due to different in set of tasks
-      for(h in c(1)){
+      for(h in c(1:2)){
 
         #h=1 -- left hemisphere
         #h=2 -- right hemisphere
@@ -83,7 +83,7 @@ for(subject in subjects) {
                                      nuisance_include = c('drift','dHRF'),
                                      scale_BOLD = TRUE,
                                      scale_design = TRUE,
-                                     GLM_method = 'classical',
+                                     GLM_method = 'Bayesian',
                                      ar_order = 6,
                                      ar_smooth = 6,
                                      session_names = c('LR','RL'), # Multiple sessions
@@ -95,10 +95,10 @@ for(subject in subjects) {
                                      return_INLA_result = T,
                                      avg_sessions = T,
                                      trim_INLA = T,
-                                     num_permute = 1000)
+                                     num_permute = 0)
         total_time <- proc.time()[3] - start_time
         result_svh$total_time <- total_time
-        saveRDS(result_svh, file=file.path(result_dir,paste0("500_",subject,"_visit",visit,"_",hem,"_5k_classical_FWHM",fwhm,"_",format(Sys.Date(),"%Y%m%d"),".rds")))
+        saveRDS(result_svh, file=file.path(result_dir,paste0("500_",subject,"_visit",visit,"_",hem,"_5k_Bayes_FWHM",fwhm,"_",format(Sys.Date(),"%Y%m%d"),".rds")))
       }
     }
   }
