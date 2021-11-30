@@ -4280,6 +4280,30 @@ for(vert_idx in 1:3) {
        fname = file.path(plot_dir,paste0("05_vertex",random_vert[vert_idx],".png")))
 }
 
+# FIGURE: Classical subject estimates FWHM 4,8,10----
+library(ciftiTools)
+ciftiTools.setOption("wb_path","/Applications/workbench")
+result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
+result_files <- list.files(result_dir, full.names = T)
+plot_dir <- "~/github/BayesGLM_Validation/plots"
+load("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/subjects.Rdata")
+subjects <- subjects[c(1,2,4)]
+for(subject in subjects) {
+  for(fwhm in c(4,8,10)) {
+    result_file <- grep(subject, result_files, value = T) |>
+      grep(pattern = "visit1", value = T) |>
+      grep(pattern = "left", value = T) |>
+      grep(pattern = paste0("FWHM",fwhm), value = T)
+    if(length(result_file) > 1) result_file <- result_file[1]
+    result <- readRDS(result_file)
+    plot(result$betas_classical$avg, hemisphere = "left", view = "lateral",
+         idx = 4, zlim = c(-1,1), legend_embed = F,
+         fname = file.path(plot_dir,
+                           paste0("600_subject_",subject,
+                                  "_tongue_classical_estimates_FWHM",
+                                  fwhm,".png")))
+  }
+}
 
 # <<<<< NOT USED IN MANUSCRIPT >>>>>----
 # FIGURE: First few frames from subject 562345 ----
