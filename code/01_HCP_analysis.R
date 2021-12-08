@@ -6,12 +6,11 @@ wb_cmd <- "/Applications/workbench"
 library(INLA)
 inla.setOption(pardiso.license = "~/licenses/pardiso.lic") # Dan's Macbook Pro
 library(BayesfMRI)
-main_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan" # Mac Pro
-# main_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan" # Dan's Macbook Pro
+# main_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan" # Mac Pro
+main_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan" # Dan's Macbook Pro
 data_dir <- file.path(main_dir,"visit1_data")
 # result_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan/5k_results/smoothed" # Dan's Macbook Pro
-# result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/permutations" # Dan's Macbook Pro
-result_dir <- "/Volumes/Lab_Data_Drive/users/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
+result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed" # Dan's Macbook Pro
 load(file.path(main_dir,"subjects.Rdata")) # Macbook Pro
 tasks <- c('cue','lf','lh','rf','rh','t') # Task data frame columns
 names_tasks <- c('cue','left_foot','left_hand','right_foot','right_hand','tongue')
@@ -88,14 +87,13 @@ for(subject in subjects) {
                                      ar_smooth = 6,
                                      session_names = c('LR','RL'), # Multiple sessions
                                      # session_names = c('LR'), # single session
-                                     resamp_res = NULL, # Don't forget to change this
+                                     resamp_res = 5000, # Don't forget to change this
                                      num.threads = 6, # Remember the tradeoff here (speed/memory) 4 to 6 threads seems optimal based on testing
                                      verbose = TRUE,
                                      outfile = NULL,
                                      return_INLA_result = T,
                                      avg_sessions = T,
-                                     trim_INLA = T,
-                                     num_permute = 0)
+                                     trim_INLA = T0)
         total_time <- proc.time()[3] - start_time
         result_svh$total_time <- total_time
         saveRDS(result_svh, file=file.path(result_dir,paste0("500_",subject,"_visit",visit,"_",hem,"_5k_Bayes_FWHM",fwhm,"_",format(Sys.Date(),"%Y%m%d"),".rds")))

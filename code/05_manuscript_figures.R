@@ -4213,10 +4213,16 @@ ggsave(filename = "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validati
 library(Matrix)
 library(ciftiTools)
 ciftiTools.setOption('wb_path','/Applications/workbench')
-classical_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/incorrectly_smoothed"
+classical_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
 result_files <- list.files(classical_dir, full.names = TRUE) |>
   grep(pattern = "FWHM6", value = TRUE) |>
   grep(pattern = "Bayes", value = TRUE) |>
+  grep(pattern = "visit1", value = TRUE) |>
+  grep(pattern = "103818", value = TRUE)
+
+result_files_classical <- list.files(classical_dir, full.names = TRUE) |>
+  grep(pattern = "FWHM6", value = TRUE) |>
+  grep(pattern = "classical", value = TRUE) |>
   grep(pattern = "visit1", value = TRUE) |>
   grep(pattern = "103818", value = TRUE)
 
@@ -4235,13 +4241,19 @@ for(hem in c('left','right')) {
   L_or_R <- toupper(substring(hem,1,1))
   hem_file <- grep(hem,result_files, value = T)
   hem_obj <- readRDS(hem_file)
+  hem_file_classical <- grep(hem, result_files_classical, value = T)
+  hem_obj_classical <- readRDS(hem_file_classical)
   ntime <- nrow(hem_obj$design[[1]])
-  nvox <- nrow(hem_obj$betas_classical$LR$data[[paste0("cortex_",hem)]])
+  nvox <- sum(hem_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$mask)
   nsess <- length(hem_obj$session_names)
   pw_y <- hem_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$y
   pw_X <- hem_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$X
-  betas <- hem_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$beta_estimates
-  betas <- sapply(betas,function(b) c(b[hem_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$mask,]), simplify = F)
+  # Bayesian
+  # betas <- hem_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$beta_estimates
+  # betas <- sapply(betas,function(b) c(b[hem_obj$GLMs_Bayesian[[paste0("cortex",L_or_R)]]$mask,]), simplify = F)
+  # Classical
+  betas <- sapply(hem_obj_classical$GLMs_classical[[paste0("cortex",L_or_R)]][1:2],
+                  function(x) c(x$estimates[x$mask,]), simplify = F)
   fit_pwy <- mapply(`%*%`, x = pw_X, y = betas)
   fit_pwy <- Reduce(function(x,y) c(x@x,y@x),fit_pwy)
   err <- pw_y - fit_pwy
@@ -4256,7 +4268,11 @@ err_mat <- Reduce(rbind,err_list)
 err_corr <- cor(t(err_mat))
 corr_upper_tri <- err_corr[upper.tri(err_corr)]
 
-random_vert <- sample(1:4443, size = 3)
+# random_vert <- sample(1:4443, size = 3)
+# These were found randomly earlier, but I didn't set a seed to make the plots.
+# Fortunately, the file names include the vertex numbers, so that is why they
+# are being specified in this way here.
+random_vert <- c(1973,2775, 3423)
 cifti_corr <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_data/603_cifti_5k_template_whole.rds")
 cifti_corr$data$cortex_left <- t(err_corr[random_vert, 1:4443])
 cifti_corr$data$cortex_right <- t(err_corr[random_vert, 4444:8887])
@@ -4271,13 +4287,16 @@ plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plo
 for(vert_idx in 1:3) {
   plot(cifti_corr, zlim = c(-0.5,0.5), idx = vert_idx, legend_embed = F,
        title = paste("Correlations: Vertex",random_vert[vert_idx]),
-       fname = file.path(plot_dir,paste0("05_correlations_vertex",random_vert[vert_idx],".png")))
+       fname = file.path(plot_dir,paste0("05_correlations_vertex",
+                                         random_vert[vert_idx],
+                                         "_classical",
+                                         ".png")))
 
-  plot(cifti_vert, color_mode = "qualitative", idx = vert_idx,
-       title = paste("Location, Vertex",random_vert[vert_idx]),
-       # borders = TRUE, edge_color = 'black',
-       colors = c("yellow","blue"),
-       fname = file.path(plot_dir,paste0("05_vertex",random_vert[vert_idx],".png")))
+  # plot(cifti_vert, color_mode = "qualitative", idx = vert_idx,
+  #      title = paste("Location, Vertex",random_vert[vert_idx]),
+  #      # borders = TRUE, edge_color = 'black',
+  #      colors = c("yellow","blue"),
+  #      fname = file.path(plot_dir,paste0("05_vertex",random_vert[vert_idx],".png")))
 }
 
 # FIGURE: Classical subject estimates FWHM 4,8,10----
@@ -4285,7 +4304,7 @@ library(ciftiTools)
 ciftiTools.setOption("wb_path","/Applications/workbench")
 result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
 result_files <- list.files(result_dir, full.names = T)
-plot_dir <- "~/github/BayesGLM_Validation/plots"
+plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
 load("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/subjects.Rdata")
 subjects <- subjects[c(1,2,4)]
 for(subject in subjects) {
@@ -4304,6 +4323,169 @@ for(subject in subjects) {
                                   fwhm,".png")))
   }
 }
+
+# FIGURE: Classical subject activations FWHM 4,8,10----
+library(ciftiTools)
+ciftiTools.setOption("wb_path","/Applications/workbench")
+library(INLA)
+inla.setOption(pardiso.license = "~/licenses/pardiso.lic")
+library(BayesfMRI)
+result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
+result_files <- list.files(result_dir, full.names = T)
+light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
+col_pal <- c(light_orange,"red","purple")
+plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
+load("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/subjects.Rdata")
+subjects <- subjects[c(1,2,4)]
+for(subject in subjects) {
+  for(fwhm in c(4,8,10)) {
+    result_file <- grep(subject, result_files, value = T) |>
+      grep(pattern = "visit1", value = T) |>
+      grep(pattern = "left", value = T) |>
+      grep(pattern = paste0("FWHM",fwhm), value = T)
+    if(length(result_file) > 1) result_file <- result_file[1]
+    result <- readRDS(result_file)
+    subj_act <- sapply(c(0,0.5,1), function(g) {
+      out <- id_activations_cifti(result,alpha = 0.01,method = "classical",threshold = g,correction = "FWER")
+      return(out$activations_xifti)
+    }, simplify = F)
+    subj_act <- Reduce(`+`,subj_act)
+    subj_act$data$cortex_left[subj_act$data$cortex_left == 0] <- NA
+    plot(subj_act, hemisphere = "left", view = "lateral",
+         idx = 4, color_mode = "qualitative", colors = col_pal, legend_embed = F,
+         fname = file.path(plot_dir,
+                           paste0("600_subject_",subject,
+                                  "_tongue_classical_activations_FWHM",
+                                  fwhm,".png"))
+         )
+  }
+}
+
+# FIGURE: Classical group estimates and activations FWHM ----
+library(ciftiTools)
+ciftiTools.setOption("wb_path","/Applications/workbench")
+library(INLA)
+inla.setOption(pardiso.license = "~/licenses/pardiso.lic")
+library(BayesfMRI)
+plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
+light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
+col_pal <- c(light_orange,"red","purple")
+result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed"
+for(fwhm in paste0("FWHM",c(4,6,8,10))) {
+  result_files <- list.files(result_dir, full.names = T) |>
+    grep(pattern = "classical", value = T) |>
+    grep(pattern = fwhm, value = T) |>
+    grep(pattern = "visit1", value = T) |>
+    grep(pattern = "left", value = T)
+  classical_group <-
+    classicalGLM2(
+      results = result_files,
+      brainstructure = "cortexL",
+      session_name = "avg",
+      gamma = c(0, 0.5, 1),
+      correction = "FWER",
+      alpha = 0.01
+    )
+  cifti_obj <- readRDS(result_files[1])$betas_classical$avg
+  cifti_est <- cifti_obj
+  cifti_est$data$cortex_left <- classical_group$avg_estimate
+  cifti_act <- cifti_obj
+  all_act <- sapply(classical_group$active_result, function(x) x$active, simplify = F)
+  all_act <- Reduce(`+`,all_act)
+  all_act[all_act == 0] <- NA
+  cifti_act$data$cortex_left <- all_act
+  plot(cifti_est, view = "lateral", hemisphere = "left", zlim = c(-1,1), idx = 4,
+       legend_embed = F,
+       fname = file.path(plot_dir,paste0("607_group_classical_tongue_estimates_",fwhm,".png")))
+  plot(cifti_act, view = "lateral", hemisphere = "left", idx = 4,
+       legend_embed = F, color_mode = "qualitative", colors = col_pal,
+       fname = file.path(plot_dir,paste0("607_group_classical_tongue_activations_",fwhm,".png")))
+}
+
+# FIGURE: Group-level permutation testing ----
+result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/"
+result_files <- list.files(result_dir, full.names = T) |>
+  grep(pattern = "FWHM6", value = T) |>
+  grep(pattern = "classical", value = T) |>
+  grep(pattern = "visit1", value = T) |>
+  grep(pattern = "left", value = T)
+
+subject_estimates <- sapply(result_files, function(x) readRDS(x)$betas_classical$avg$data$cortex_left)
+# # 5000 is the number of permutations we will perform
+# set.seed(47408)
+# reorderings <- sapply(seq(5000), function(s) sample(c(1,-1),size = 45, replace = T), simplify = F)
+# library(parallel)
+# cl <- makeCluster(6)
+# # Number of tasks is 4, there are 4443 locations, and 45 subjects
+# null_dist <- parSapplyLB(cl,reorderings, function(ro,se){
+#   perm_est <- t(t(se) * ro)
+#   perm_est <- array(perm_est, dim = c(4443,4,45))
+#   max_t <- apply(perm_est,1:2,function(x) t.test(x)$statistic)
+#   return(apply(max_t,2,max))
+# }, se = subject_estimates)
+# stopCluster(cl)
+# saveRDS(null_dist, "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/03_max_tvalues.rds")
+null_dist <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/03_max_tvalues.rds")
+alpha <- 0.01
+thresholds <- apply(null_dist, 1, function(x) sort(x, decreasing = T)[ceiling(alpha*length(x))])
+
+actual_t <- sapply(c(0,0.5,1), function(gam){
+  out <- apply(array(subject_estimates, dim = c(4443,4,45)),1:2, function(x) t.test(x,mu = gam)$statistic)
+  return(out)
+}, simplify = F)
+active_perm <- sapply(actual_t, function(act_t){
+  mapply(function(t_k,thr) as.numeric(t_k > thr), t_k = split(act_t,col(act_t)), thr = thresholds)
+}, simplify = F)
+active_perm <- Reduce(`+`, active_perm)
+active_perm[active_perm == 0] <- NA
+
+# actual_t <- apply(array(subject_estimates, dim = c(4443,4,45)),1:2, function(x) t.test(x)$statistic)
+# active_perm <- mapply(function(t_k,thr) as.numeric(t_k > thr), t_k = split(actual_t,col(actual_t)), thr = thresholds)
+active_cifti <- readRDS(result_files[1])$betas_classical$avg
+active_cifti$data$cortex_left <- active_perm
+plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
+light_orange <- colorRampPalette(c("white","orange"))(3)[2]
+my_pal <- c(light_orange,"red","purple")
+plot(
+  active_cifti,
+  hemisphere = "left",
+  idx = 4,
+  view = 'lateral',
+  color_mode = "qualitative",
+  colors = my_pal,
+  fname = file.path(
+    plot_dir,
+    "607_group_classical_tongue_activations_permutation.png"
+  )
+)
+
+# Here's a plot of the FDR activations with group testing
+library(BayesfMRI)
+fdr_act <- classicalGLM2(results = result_files,
+                brainstructure = "cortexL",
+                gamma = c(0,0.5,1),
+                correction = "FDR",
+                alpha = 0.01)
+fdr_act <- sapply(fdr_act$active_result, function(x) x$active, simplify = F)
+fdr_act <- Reduce(`+`, fdr_act)
+fdr_act[fdr_act == 0] <- NA
+active_cifti <- readRDS(result_files[1])$betas_classical$avg
+active_cifti$data$cortex_left <- fdr_act
+plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
+light_orange <- colorRampPalette(c("white","orange"))(3)[2]
+my_pal <- c(light_orange,"red","purple")
+plot(
+  active_cifti,
+  hemisphere = "left",
+  idx = 4,
+  view = 'lateral',
+  color_mode = "qualitative",
+  colors = my_pal,
+  fname = file.path(
+    plot_dir,
+    "607_group_classical_tongue_activations_fdr.png"
+  )
+)
 
 # <<<<< NOT USED IN MANUSCRIPT >>>>>----
 # FIGURE: First few frames from subject 562345 ----
