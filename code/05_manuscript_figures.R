@@ -1799,10 +1799,35 @@ for(i in c(2,3)) {
 }
 
 # >>>> Classical ----
-group_results_classical <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/group/03_HCP_classical_group_PW_estimates_visit1.rds")
+# group_results_classical <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/group/03_HCP_classical_group_PW_estimates_visit1.rds")
+classical_result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/"
+classical_result_files <- list.files(classical_result_dir, full.names = T) |>
+  grep(pattern = "classical", value = T) |>
+  grep(pattern = "visit1", value = T) |>
+  grep(pattern = "sessionLR", value = T, invert = T) |>
+  grep(pattern = "FWHM6", value = T)
+left_files <- grep(pattern = "left", classical_result_files, value = T)
+right_files <- grep(pattern = "right", classical_result_files, value = T)
+library(BayesfMRI)
+group_left <-
+  classicalGLM2(
+    results = left_files,
+    brainstructure = "cortexL",
+    gamma = c(0, 0.5, 1),
+    correction = "FWER",
+    alpha = 0.01
+  )
+group_right <-
+  classicalGLM2(
+    results = right_files,
+    brainstructure = "cortexR",
+    gamma = c(0, 0.5, 1),
+    correction = "FWER",
+    alpha = 0.01
+  )
 cifti_classical <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_data/603_cifti_5k_template_whole.rds")
-cifti_classical$data$cortex_left <- as.matrix(group_results_classical$left)
-cifti_classical$data$cortex_right <- as.matrix(group_results_classical$right)
+cifti_classical$data$cortex_left <- group_left$avg_estimate
+cifti_classical$data$cortex_right <- group_right$avg_estimate
 # >>>>>>  Visual Cue and Tongue (idx = c(1,4)) ----
 for(i in c(1,4)) {
   plot(cifti_classical, zlim = c(-1,1), idx = i, hemisphere = "both",
@@ -1893,24 +1918,43 @@ for(task_idx in 1:4) {
 # FDR_result <- readRDS(grep("classical_activations_PW_FDR", result_files, value= T))
 # FWER_result <- readRDS("HCP_results/5k_results/group/502_HCP_classical_activations_PW_visit1_FWER.rds")
 plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
-FWER_result <- readRDS("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/group/502_HCP_classical_activations_PW_visit1_FWER.rds")
+classical_result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_results/smoothed/"
+classical_result_files <- list.files(classical_result_dir, full.names = T) |>
+  grep(pattern = "classical", value = T) |>
+  grep(pattern = "visit1", value = T) |>
+  grep(pattern = "sessionLR", value = T, invert = T) |>
+  grep(pattern = "FWHM6", value = T)
+left_files <- grep(pattern = "left", classical_result_files, value = T)
+right_files <- grep(pattern = "right", classical_result_files, value = T)
+library(BayesfMRI)
+group_left <-
+  classicalGLM2(
+    results = left_files,
+    brainstructure = "cortexL",
+    gamma = c(0, 0.5, 1),
+    correction = "FWER",
+    alpha = 0.01
+  )
+group_right <-
+  classicalGLM2(
+    results = right_files,
+    brainstructure = "cortexR",
+    gamma = c(0, 0.5, 1),
+    correction = "FWER",
+    alpha = 0.01
+  )
+left_active <- sapply(group_left$active_result, function(x) x$active, simplify = F) |>
+  Reduce(f = `+`)
+left_active[left_active == 0] <- NA
+right_active <- sapply(group_right$active_result, function(x) x$active, simplify = F) |>
+  Reduce(f = `+`)
+right_active[right_active == 0] <- NA
+cifti_classical <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_data/603_cifti_5k_template_whole.rds")
 library(BayesfMRI)
 library(ciftiTools)
 ciftiTools::ciftiTools.setOption('wb_path',"/Applications/workbench")
 light_orange <- grDevices::colorRampPalette(c("orange","white"))(3)[2]
-# col_pal <- c("yellow",light_orange,"red","purple")
 col_pal <- c(light_orange,"red","purple")
-
-# left_active <- FDR_result$left$`0%`
-# left_active <- left_active + Reduce(`+`, FWER_result$left)
-left_active <- Reduce(`+`, FWER_result$left)
-left_active[left_active == 0] <- NA
-# right_active <- FDR_result$right$`0%`
-# right_active <- right_active + Reduce(`+`, FWER_result$right)
-right_active <- Reduce(`+`, FWER_result$right)
-right_active[right_active == 0] <- NA
-# cifti_classical <- readRDS("HCP_data/cifti_5k_template_whole.rds")
-cifti_classical <- readRDS("/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/HCP_data/603_cifti_5k_template_whole.rds")
 cifti_classical$data$cortex_left <- left_active
 cifti_classical$data$cortex_right <- right_active
 task_names <- c("visual_cue","foot","hand","tongue")
@@ -2416,94 +2460,140 @@ result_dir <- "/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/5k_resul
 library(abind)
 result_files <- list.files(result_dir, full.names = T) |>
   grep(pattern = "_visit1_", value = T) |>
-  grep(pattern = "FWHM6", value = T)
+  grep(pattern = "FWHM6", value = T) |>
+  grep(pattern = "classical", value = T) |>
+  grep(pattern = "sessionLR", value = T, invert = T)
 # result_files <- grep("_visit1_", result_files, value = T)
 # load("HCP_data/subjects.Rdata")
 load("/Volumes/GoogleDrive/My Drive/danspen/HCP_Motor_Task_Dan/subjects.Rdata")
-classical_estimates <- sapply(c('left','right'), function(hem) {
-  sapply(subjects, function(subject) {
-    filen <- grep(paste0(subject, "_visit1_",hem), result_files, value = T)
-    if(length(filen) > 1) filen = filen[1]
-    result_obj <- readRDS(filen)
-    out <-
-      abind(result_obj$betas_classical$LR$data[[paste0("cortex_", hem)]],
-            result_obj$betas_classical$RL$data[[paste0("cortex_", hem)]],
-            along = 3)
-    return(out)
-  }, simplify = "array")
-}, simplify = F)
+# classical_estimates <- sapply(c('left','right'), function(hem) {
+#   sapply(subjects, function(subject) {
+#     filen <- grep(paste0(subject, "_visit1_",hem), result_files, value = T)
+#     if(length(filen) > 1) filen = filen[1]
+#     result_obj <- readRDS(filen)
+#     out <-
+#       abind(result_obj$betas_classical$LR$data[[paste0("cortex_", hem)]],
+#             result_obj$betas_classical$RL$data[[paste0("cortex_", hem)]],
+#             along = 3)
+#     return(out)
+#   }, simplify = "array")
+# }, simplify = F)
 
 subsample_subjects <- readRDS("/Volumes/GoogleDrive/My Drive/BayesGLM_Validation/5k_results/group/PW/subsamples/501_sample_subjects_20210319.rds")
-# load("HCP_data/subjects.Rdata")
-subsample_idx <- sapply(subsample_subjects, function(sam){
-  out <- apply(sam,1:2, function(x) which(subjects == x))
-  return(out)
-}, simplify = F)
-threshs <- c(0,0.5,1)
-class_num_act <- sapply(subsample_idx, function(ssize) {
-  sample_num_active <- sapply(1:10,function(samp) {
-    sapply(c('left','right'), function(hem) {
-      samp_est <- classical_estimates[[hem]][,,,ssize[,samp]]
-      num_locs <- dim(samp_est)[1]
-      bonferroni_cutoff <- 0.01 / num_locs # alpha = 0.01
-      data_df <- reshape2::melt(samp_est)
-      vertex_lists <- split(data_df,data_df$Var1)
-      thresh_active <- sapply(c(0,0.5,1), function(thr) {
-        active_all <- sapply(vertex_lists, function(v_df){
-          vt_df <- split(v_df, v_df$Var2)
-          active_vertex <- sapply(vt_df, function(vt) {
-            ttest_res <- t.test(x = vt$value, mu = thr, alternative = "greater")
-            active_v <- ifelse(ttest_res$p.value < bonferroni_cutoff, 1, 0)
-            return(active_v)
-          }, simplify = "array")
-          return(active_vertex)
-        }, simplify = 'array')
-        out <- apply(active_all,1,sum)
-        return(as.matrix(out))
-      }, simplify = F)
-      names(thresh_active) <- paste0(threshs,"%")
-      return(thresh_active)
-    }, simplify = F)
-  }, simplify = F)
-  names(sample_num_active) <- as.character(1:10)
-  return(sample_num_active)
-}, simplify = F)
-names(class_num_act) <- c("10","20","30")
+subsample_subjects[[4]] <- as.matrix(subjects)
+task_names <- c("cue","foot","hand","tongue")
+library(tidyverse)
 
-class_num_act_45 <- sapply("45", function(ssize) {
-  sample_num_active <- sapply(1,function(samp) {
-    sapply(c('left','right'), function(hem) {
-      samp_est <- classical_estimates[[hem]]
-      num_locs <- dim(samp_est)[1]
-      bonferroni_cutoff <- 0.01 / num_locs # alpha = 0.01
-      data_df <- reshape2::melt(samp_est)
-      vertex_lists <- split(data_df,data_df$Var1)
-      thresh_active <- sapply(c(0,0.5,1), function(thr) {
-        active_all <- sapply(vertex_lists, function(v_df){
-          vt_df <- split(v_df, v_df$Var2)
-          active_vertex <- sapply(vt_df, function(vt) {
-            ttest_res <- t.test(x = vt$value, mu = thr, alternative = "greater")
-            active_v <- ifelse(ttest_res$p.value < bonferroni_cutoff, 1, 0)
-            return(active_v)
-          }, simplify = "array")
-          return(active_vertex)
-        }, simplify = 'array')
-        out <- apply(active_all,1,sum)
-        return(as.matrix(out))
-      }, simplify = F)
-      names(thresh_active) <- paste0(threshs,"%")
-      return(thresh_active)
+class_num_act <- sapply(subsample_subjects, function(samp_n) {
+  sub_size <- sapply(seq(ncol(samp_n)), function(samp_num) {
+    files <- sapply(samp_n[,samp_num], function(x) grep(pattern =x, result_files,value = T))
+    group_left <-
+      classicalGLM2(
+        results = grep(pattern = "left", files, value = T),
+        brainstructure = "cortexL",
+        gamma = c(0, 0.5),
+        correction = "FWER",
+        alpha = 0.01
+      )
+    group_right <-
+      classicalGLM2(
+        results = grep(pattern = "right", files, value = T),
+        brainstructure = "cortexR",
+        gamma = c(0, 0.5),
+        correction = "FWER",
+        alpha = 0.01
+      )
+    num_active <- sapply(list(group_left, group_right), function(hem) {
+      sapply(hem$active_result, function(gam) { as.matrix(apply(gam$active, 2, sum))}, simplify = F)
     }, simplify = F)
+    names(num_active) <- c("left","right")
+    sum_active <- reshape2::melt(num_active) %>%
+      mutate(task = task_names[Var1],
+             gamma = as.numeric(sub("gamma = ","",L2)),
+             other_hem = ifelse(L1 == "left","right","left"),
+             task = ifelse(task == "foot" | task =="hand", paste(other_hem,task),task)) %>%
+      group_by(gamma, task) %>%
+      summarize(value = sum(value)) %>%
+      mutate(samp_num = samp_num,
+             num_subjects = nrow(samp_n)) %>%
+      ungroup()
+    return(sum_active)
   }, simplify = F)
-  names(sample_num_active) <- "1"
-  return(sample_num_active)
+  sub_size_df <- Reduce(full_join, sub_size)
+  return(sub_size_df)
 }, simplify = F)
+class_act_df <- Reduce(full_join,class_num_act)
+
+# load("HCP_data/subjects.Rdata")
+# subsample_idx <- sapply(subsample_subjects, function(sam){
+#   out <- apply(sam,1:2, function(x) which(subjects == x))
+#   return(out)
+# }, simplify = F)
+# threshs <- c(0,0.5,1)
+# class_num_act <- sapply(subsample_idx, function(ssize) {
+#   sample_num_active <- sapply(1:10,function(samp) {
+#     sapply(c('left','right'), function(hem) {
+#       samp_est <- classical_estimates[[hem]][,,,ssize[,samp]]
+#       num_locs <- dim(samp_est)[1]
+#       bonferroni_cutoff <- 0.01 / num_locs # alpha = 0.01
+#       data_df <- reshape2::melt(samp_est)
+#       vertex_lists <- split(data_df,data_df$Var1)
+#       thresh_active <- sapply(c(0,0.5,1), function(thr) {
+#         active_all <- sapply(vertex_lists, function(v_df){
+#           vt_df <- split(v_df, v_df$Var2)
+#           active_vertex <- sapply(vt_df, function(vt) {
+#             ttest_res <- t.test(x = vt$value, mu = thr, alternative = "greater")
+#             active_v <- ifelse(ttest_res$p.value < bonferroni_cutoff, 1, 0)
+#             return(active_v)
+#           }, simplify = "array")
+#           return(active_vertex)
+#         }, simplify = 'array')
+#         out <- apply(active_all,1,sum)
+#         return(as.matrix(out))
+#       }, simplify = F)
+#       names(thresh_active) <- paste0(threshs,"%")
+#       return(thresh_active)
+#     }, simplify = F)
+#   }, simplify = F)
+#   names(sample_num_active) <- as.character(1:10)
+#   return(sample_num_active)
+# }, simplify = F)
+# names(class_num_act) <- c("10","20","30")
+
+# class_num_act_45 <- sapply("45", function(ssize) {
+#   sample_num_active <- sapply(1,function(samp) {
+#     sapply(c('left','right'), function(hem) {
+#       samp_est <- classical_estimates[[hem]]
+#       num_locs <- dim(samp_est)[1]
+#       bonferroni_cutoff <- 0.01 / num_locs # alpha = 0.01
+#       data_df <- reshape2::melt(samp_est)
+#       vertex_lists <- split(data_df,data_df$Var1)
+#       thresh_active <- sapply(c(0,0.5,1), function(thr) {
+#         active_all <- sapply(vertex_lists, function(v_df){
+#           vt_df <- split(v_df, v_df$Var2)
+#           active_vertex <- sapply(vt_df, function(vt) {
+#             ttest_res <- t.test(x = vt$value, mu = thr, alternative = "greater")
+#             active_v <- ifelse(ttest_res$p.value < bonferroni_cutoff, 1, 0)
+#             return(active_v)
+#           }, simplify = "array")
+#           return(active_vertex)
+#         }, simplify = 'array')
+#         out <- apply(active_all,1,sum)
+#         return(as.matrix(out))
+#       }, simplify = F)
+#       names(thresh_active) <- paste0(threshs,"%")
+#       return(thresh_active)
+#     }, simplify = F)
+#   }, simplify = F)
+#   names(sample_num_active) <- "1"
+#   return(sample_num_active)
+# }, simplify = F)
 
 library(tidyverse)
-classical_num_act <- reshape2::melt(class_num_act) %>%
+classical_num_act <-
+  reshape2::melt(class_num_act) %>%
   full_join(reshape2::melt(class_num_act_45)) %>%
-  mutate(L4 = sub("%","", L4),
-         model = "Classical GLM")
+  mutate(model = "Classical GLM")
 
 # >> Plot ----
 col_pal <- scales::hue_pal()(5)
@@ -2512,6 +2602,42 @@ col_pal <- viridis(7,option = "C")[1:5]
 col_pal <- rgb(c(230, 86, 0, 0,204),c(159,180,158,114,121),c(0,233,115,178,167), maxColorValue = 255)
 library(tidyverse)
 task_names <- c("cue","foot","hand","tongue")
+
+bayes_num_act[[4]] <- bayes_num_act_45[[1]]
+names(bayes_num_act)[4] <- "45"
+num_act_df <-
+  reshape2::melt(bayes_num_act) %>%
+  mutate(task = task_names[Var1],
+         task = ifelse(task %in% c("foot","hand"),paste(L3,task),task),
+         gamma = as.numeric(sub("gamma = ","", L4)),
+         samp_num = as.numeric(L2),
+         num_subjects = as.numeric(L1)) %>%
+  group_by(task, gamma, num_subjects, samp_num) %>%
+  summarize(value = sum(value)) %>%
+  ungroup() %>%
+  filter(gamma != 1) %>%
+  mutate(model = "Bayesian GLM") %>%
+  full_join(mutate(class_act_df, model = "Classical GLM")) %>%
+  filter(task != "cue")
+
+num_act_plot <- ggplot(mapping = aes(x = num_subjects, y = value, color = task)) +
+  geom_jitter(width = 1, height = 1, alpha = 0.3,
+              data = filter(num_act_df, num_subjects < 45)) +
+  geom_point(data = filter(num_act_df, num_subjects == 45), size = 4) +
+  geom_line(data = group_by(num_act_df, num_subjects, gamma, model, task) %>% summarize(value = mean(value)), lwd = 1.6) +
+  scale_color_manual("", values = col_pal) +
+  facet_grid(gamma~model, scales = "free_y", labeller = label_bquote(rows = gamma == .(gamma)~"%")) +
+  labs(x = "Number of Subjects", y = "Number of Active Locations") +
+  # theme_classic() +
+  theme(legend.position = "right",
+        text = element_text(size = 14),
+        panel.spacing = unit(0.2, "lines"),
+        panel.background=element_rect(fill="white"),
+        panel.border=element_rect(colour="black",size=1,fill = NA))
+plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
+ggsave(file.path(plot_dir,"607_num_act_plots_thr0_and_thr05.png"), plot = num_act_plot, width = 7, height = 6)
+
+
 num_act_plots <- sapply(c(0,0.5), function(thr) {
   # sapply(c("One Hemisphere","Two Hemispheres"), function(hemi) {
   #   if(hemi == "One Hemisphere") {
@@ -2524,7 +2650,7 @@ num_act_plots <- sapply(c(0,0.5), function(thr) {
     reshape2::melt(bayes_num_act) %>%
     full_join(reshape2::melt(bayes_num_act_45)) %>%
     mutate(model = "Bayesian GLM") %>%
-    full_join(classical_num_act) %>%
+    # full_join(classical_num_act) %>%
     filter(L4 == as.character(thr)) %>%
     mutate(task = task_names[Var1],
            not_hem = ifelse(L3 == 'left', 'right','left'),
@@ -3896,7 +4022,9 @@ subject_files <- grep(pattern = "103818",
                       list.files(result_dir_classical, full.names = TRUE),
                       value = TRUE) |>
   grep(pattern = "FWHM6", value = T) |>
-  grep(pattern = "visit1", value = T)
+  grep(pattern = "visit1", value = T) |>
+  grep(pattern = "sessionLR", value = T) |>
+  grep(pattern = "classical", value = T)
 left_obj <- readRDS(grep("left",subject_files, value = T))
 left_cifti <- left_obj$betas_classical$LR
 left_active <- sapply(c(0,0.5,1), function(thr) {

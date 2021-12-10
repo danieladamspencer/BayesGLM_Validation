@@ -68,25 +68,25 @@ for(subject in subjects) {
         motion2 <- as.matrix(read.table(file.path(dir2_s,'Movement_Regressors.txt'), header=FALSE))
 
         start_time <- proc.time()[3]
-        result_svh <- BayesGLM_cifti(cifti_fname = c(fname1_ts, fname2_ts), # Multi-session
-                                     # cifti_fname = fname1_ts, # single-session
+        result_svh <- BayesGLM_cifti(# cifti_fname = c(fname1_ts, fname2_ts), # Multi-session
+                                     cifti_fname = fname1_ts, # single-session
                                      surfL_fname = fname_gifti_left,
                                      surfR_fname = fname_gifti_right,
                                      brainstructures = hem,
                                      design = NULL,
-                                     onsets = list(onsets1, onsets2), # Multi-session
-                                     # onsets = onsets1, # single-session
+                                     # onsets = list(onsets1, onsets2), # Multi-session
+                                     onsets = onsets1, # single-session
                                      TR = TR,
-                                     nuisance = list(motion1, motion2), # Multi-session
-                                     # nuisance = motion1, # single-session
+                                     # nuisance = list(motion1, motion2), # Multi-session
+                                     nuisance = motion1, # single-session
                                      nuisance_include = c('drift','dHRF'),
                                      scale_BOLD = TRUE,
                                      scale_design = TRUE,
-                                     GLM_method = 'Bayesian',
+                                     GLM_method = 'classical',
                                      ar_order = 6,
                                      ar_smooth = 6,
-                                     session_names = c('LR','RL'), # Multiple sessions
-                                     # session_names = c('LR'), # single session
+                                     # session_names = c('LR','RL'), # Multiple sessions
+                                     session_names = c('LR'), # single session
                                      resamp_res = 5000, # Don't forget to change this
                                      num.threads = 6, # Remember the tradeoff here (speed/memory) 4 to 6 threads seems optimal based on testing
                                      verbose = TRUE,
@@ -96,7 +96,7 @@ for(subject in subjects) {
                                      trim_INLA = T0)
         total_time <- proc.time()[3] - start_time
         result_svh$total_time <- total_time
-        saveRDS(result_svh, file=file.path(result_dir,paste0("500_",subject,"_visit",visit,"_",hem,"_5k_Bayes_FWHM",fwhm,"_",format(Sys.Date(),"%Y%m%d"),".rds")))
+        saveRDS(result_svh, file=file.path(result_dir,paste0("500_",subject,"_visit",visit,"_sessionLR_",hem,"_5k_classical_FWHM",fwhm,"_",format(Sys.Date(),"%Y%m%d"),".rds")))
       }
     }
   }
