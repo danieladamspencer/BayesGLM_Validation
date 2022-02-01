@@ -4346,13 +4346,15 @@ result_files <- list.files(classical_dir, full.names = TRUE) |>
   grep(pattern = "FWHM6", value = TRUE) |>
   grep(pattern = "Bayes", value = TRUE) |>
   grep(pattern = "visit1", value = TRUE) |>
-  grep(pattern = "103818", value = TRUE)
+  grep(pattern = "103818", value = TRUE) |>
+  grep(pattern = "sessionLR", value = TRUE, invert = TRUE)
 
 result_files_classical <- list.files(classical_dir, full.names = TRUE) |>
   grep(pattern = "FWHM6", value = TRUE) |>
   grep(pattern = "classical", value = TRUE) |>
   grep(pattern = "visit1", value = TRUE) |>
-  grep(pattern = "103818", value = TRUE)
+  grep(pattern = "103818", value = TRUE) |>
+  grep(pattern = "sessionLR", value = TRUE, invert = TRUE)
 
 # hem <- 'left'
 err_list <- list(
@@ -4413,7 +4415,7 @@ cifti_vert <- newdata_xifti(cifti_corr, vert_mat)
 # cifti_vert <- convert_xifti(cifti_vert, to = "dlabel")
 plot_dir <- "/Volumes/GoogleDrive/My Drive/MEJIA_LAB_Dan/BayesGLM_Validation/plots"
 for(vert_idx in 1:3) {
-  plot(cifti_corr, zlim = c(-0.5,0.5), idx = vert_idx, legend_embed = F,
+  plot(cifti_corr, zlim = c(-0.3,0.3), idx = vert_idx, legend_embed = F,
        title = paste("Correlations: Vertex",random_vert[vert_idx]),
        fname = file.path(plot_dir,paste0("05_correlations_vertex",
                                          random_vert[vert_idx],
